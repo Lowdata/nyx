@@ -11,7 +11,7 @@ interface HeroProps {
   tasksDone: Record<string, boolean>;
   onCompleteTask: (taskId: string, pts: number) => void;
   referralCode: string | null;
-  onGenerateReferral: () => string;
+  onConnectWallet?: () => void;
 }
 
 export default function Hero({
@@ -20,13 +20,12 @@ export default function Hero({
   tasksDone,
   onCompleteTask,
   referralCode,
-  onGenerateReferral,
+  onConnectWallet,
 }: HeroProps) {
   const [scrollY, setScrollY] = useState(0);
   const visualRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Check reduced motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
@@ -52,17 +51,18 @@ export default function Hero({
   let sub = 'He wakes when the circle proves itself — one wallet, one post, one dream at a time.';
 
   if (points >= FCFS_END) {
-    eyebrow = 'Stirring';
-    title = 'Nyx is stirring.';
+    eyebrow = 'Dawn breaking';
+    title = 'Nyx is waking.';
     sub = 'FCFS spots are open. Guaranteed spots need the whole circle, not just you.';
   } else if (points >= SLEEP_END) {
     eyebrow = 'Stirring';
     title = 'Nyx is stirring.';
-    sub = 'Getting closer. A few more actions and FCFS spots unlock.';
+    sub = 'Getting closer. A few more collective actions and FCFS spots unlock.';
   }
 
   return (
     <section className="hero" id="top" aria-label="Hero">
+      {/* Background Visual: Nyx artwork positioned on the right */}
       <div className="hero-visual" ref={visualRef}>
         <div
           className="hero-visual-inner"
@@ -80,16 +80,24 @@ export default function Hero({
         <div className="hero-scrim" />
       </div>
 
-      <div className="hero-panel">
-        <p className="hero-eyebrow">{eyebrow}</p>
+      {/* Hero Panel on the Left of the image */}
+      <div className="hero-panel" id="tasks">
+        <div className="hero-badge">
+          <span className="badge-moon">🌑</span>
+          <span>{eyebrow}</span>
+          <span className="badge-divider">•</span>
+          <span className="badge-pct">{Math.round(pct)}% Awoken</span>
+        </div>
+
         <h1 className="hero-title">{title}</h1>
         <p className="hero-sub">{sub}</p>
 
+        {/* Task List on the left of the image */}
         <TaskCard
           tasksDone={tasksDone}
           onCompleteTask={onCompleteTask}
           referralCode={referralCode}
-          onGenerateReferral={onGenerateReferral}
+          onConnectWallet={onConnectWallet}
           pct={pct}
         />
       </div>

@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import Backdrop from '@/components/Backdrop';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
-import Lore from '@/components/Lore';
 import DreamMeter from '@/components/DreamMeter';
+import ReferralSection from '@/components/ReferralSection';
 import Rituals from '@/components/Rituals';
+import Lore from '@/components/Lore';
 import AwakenMint from '@/components/AwakenMint';
 import Footer from '@/components/Footer';
 import SpinModal from '@/components/modals/SpinModal';
@@ -18,9 +19,12 @@ export default function Home() {
   const {
     state,
     isLoaded,
+    isConnecting,
+    connectError,
     completeTask,
-    connectWallet,
-    generateReferralCode,
+    connectAndSignWallet,
+    redeemReferralCode,
+    simulateFriendReferral,
     spinWheel,
     getRemainingSpinMs,
     submitTweet,
@@ -71,6 +75,30 @@ export default function Home() {
     return res;
   };
 
+  const handleRedeemReferral = async (code: string) => {
+    const res = await redeemReferralCode(code);
+    if (res.success) {
+      setSparkleKey((k) => k + 1);
+    }
+    return res;
+  };
+
+  const handleSimulateReferral = async () => {
+    const res = await simulateFriendReferral();
+    if (res.success) {
+      setSparkleKey((k) => k + 1);
+    }
+    return res;
+  };
+
+  const handleConnect = async () => {
+    const res = await connectAndSignWallet();
+    if (res.success) {
+      setSparkleKey((k) => k + 1);
+    }
+    return res;
+  };
+
   return (
     <>
       <Backdrop glowPct={pct} />
@@ -78,26 +106,40 @@ export default function Home() {
 
       <Navbar
         walletAddress={state.walletAddress}
-        onConnectWallet={() => {
-          connectWallet();
-          setSparkleKey((k) => k + 1);
-        }}
+        isConnecting={isConnecting}
+        onConnectWallet={handleConnect}
       />
 
       <main>
+        {/* 1. Cinematic Summons Hero with Task List on the Left of the Image */}
         <Hero
           points={state.points}
           pct={pct}
           tasksDone={state.tasksDone}
           onCompleteTask={handleTaskComplete}
           referralCode={state.referralCode}
-          onGenerateReferral={generateReferralCode}
+          onConnectWallet={handleConnect}
         />
 
-        <Lore />
-
+        {/* 2. THE BIG DREAM METER (ON TOP) */}
         <DreamMeter points={state.points} pct={pct} stage={stage} />
 
+        {/* 3. Full Referral Circle System */}
+        <ReferralSection
+          walletAddress={state.walletAddress}
+          referralCode={state.referralCode}
+          referralsCount={state.referralsCount || 0}
+          referralPoints={state.referralPoints || 0}
+          referredByCode={state.referredByCode}
+          referralHistory={state.referralHistory || []}
+          isConnecting={isConnecting}
+          connectError={connectError}
+          onConnectAndSign={handleConnect}
+          onRedeemCode={handleRedeemReferral}
+          onSimulateReferral={handleSimulateReferral}
+        />
+
+        {/* 4. Extra Rituals (Spin & Summons) */}
         <Rituals
           onOpenSpin={() => setSpinOpen(true)}
           onOpenTweet={() => setTweetOpen(true)}
@@ -105,15 +147,17 @@ export default function Home() {
           isTweetClaimed={state.tweetClaimed}
         />
 
+        {/* 5. The Myth & Cycle */}
+        <Lore />
+
+        {/* 6. Awaken Mint & Whitelist Claim */}
         <AwakenMint
           points={state.points}
           walletAddress={state.walletAddress}
-          onConnectWallet={() => {
-            connectWallet();
-            setSparkleKey((k) => k + 1);
-          }}
+          onConnectWallet={handleConnect}
         />
 
+        {/* 7. Footer */}
         <Footer />
       </main>
 

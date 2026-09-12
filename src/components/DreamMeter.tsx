@@ -15,17 +15,33 @@ export default function DreamMeter({ points, pct, stage }: DreamMeterProps) {
   const isFcfsActive = points >= SLEEP_END && points < FCFS_END;
   const isGtdActive = points >= FCFS_END;
 
+  // Calculate points to next tier
+  let nextMilestoneText = '';
+  if (points < SLEEP_END) {
+    nextMilestoneText = `${SLEEP_END - points} pts to unlock FCFS Tier`;
+  } else if (points < FCFS_END) {
+    nextMilestoneText = `${FCFS_END - points} pts to unlock Guaranteed Tier`;
+  } else if (points < TARGET) {
+    nextMilestoneText = `${TARGET - points} pts until Nyx is fully awake!`;
+  } else {
+    nextMilestoneText = 'All tiers unlocked! Nyx is fully awake.';
+  }
+
   return (
     <section className="meter-section" id="meter" aria-labelledby="meter-heading">
       <div className="wrap">
         <div className="section-head">
-          <p className="kicker">Live progress</p>
-          <h2 id="meter-heading">The dream meter</h2>
+          <div className="meter-kicker-row">
+            <span className="kicker">Live Community Progress</span>
+            <span className="live-badge">
+              <span className="live-dot" /> LIVE SYNC
+            </span>
+          </div>
+          <h2 id="meter-heading">The Dream Meter</h2>
           <p>
-            Three tiers, one bar. Sleep is where everyone starts. FCFS opens to
-            anyone who shows up. Guaranteed only fills when the whole circle moves
-            together — which is why it&apos;s built to stay just out of reach for
-            any one dreamer.
+            Three tiers, one shared bar. Every quest completed, daily spin, and friend
+            invited fills the meter. Sleep is where everyone starts — FCFS opens at 600 pts,
+            and Guaranteed spots unlock when the circle reaches 1,100 pts together.
           </p>
         </div>
 
@@ -33,10 +49,16 @@ export default function DreamMeter({ points, pct, stage }: DreamMeterProps) {
           <div className="meter-top">
             <div>
               <div className="meter-pct">{Math.round(pct)}%</div>
-              <div className="meter-stage">{stage}</div>
+              <div className="meter-stage-badge">
+                <span className="stage-indicator" />
+                <span className="meter-stage">{stage}</span>
+              </div>
             </div>
-            <div className="meter-points">
-              {Math.min(points, TARGET)} / {TARGET} points collected
+            <div className="meter-points-box">
+              <div className="meter-points">
+                <strong>{Math.min(points, TARGET)}</strong> / {TARGET} points collected
+              </div>
+              <div className="meter-milestone-pill">{nextMilestoneText}</div>
             </div>
           </div>
 
@@ -62,8 +84,8 @@ export default function DreamMeter({ points, pct, stage }: DreamMeterProps) {
               <Image
                 src="/main.webp"
                 alt="Nyx avatar indicator"
-                width={44}
-                height={44}
+                width={48}
+                height={48}
                 style={{ objectFit: 'cover' }}
               />
             </div>
@@ -71,20 +93,46 @@ export default function DreamMeter({ points, pct, stage }: DreamMeterProps) {
 
           <div className="tier-labels">
             <div className={`tier-label ${isSleepActive ? 'active' : ''}`} id="tier-sleep">
-              <h4>🌑 Sleep</h4>
+              <div className="tier-head">
+                <h4>🌑 Sleep</h4>
+                {isSleepActive && <span className="tier-status-pill">Active</span>}
+              </div>
               <span>0 – 600 pts</span>
+              <p className="tier-desc">Where everyone starts. Small acts of showing up stir Nyx from slumber.</p>
             </div>
             <div className={`tier-label ${isFcfsActive ? 'active' : ''}`} id="tier-fcfs">
-              <h4>🌗 FCFS</h4>
+              <div className="tier-head">
+                <h4>🌗 FCFS</h4>
+                {isFcfsActive && <span className="tier-status-pill">Active</span>}
+                {points >= FCFS_END && <span className="tier-status-pill unlocked">Cleared ✓</span>}
+              </div>
               <span>600 – 1,100 pts</span>
+              <p className="tier-desc">First Come First Served mint spots open to anyone who participates.</p>
             </div>
             <div className={`tier-label gtd ${isGtdActive ? 'active gtd' : ''}`} id="tier-gtd">
-              <h4>☀️ Guaranteed</h4>
+              <div className="tier-head">
+                <h4>☀️ Guaranteed</h4>
+                {isGtdActive && <span className="tier-status-pill gold">Unlocked!</span>}
+              </div>
               <span>1,100 – 2,200 pts</span>
+              <p className="tier-desc">Guaranteed mint spot. Only unlocks when the circle moves as one.</p>
             </div>
+          </div>
+
+          <div className="meter-quick-ctas">
+            <a href="#tasks" className="btn btn-gold">
+              ⚡ Complete Tasks
+            </a>
+            <a href="#referrals" className="btn btn-ghost">
+              👥 Invite Friends (+100 pts)
+            </a>
+            <a href="#rituals" className="btn btn-ghost">
+              🌙 Daily Spin
+            </a>
           </div>
         </div>
       </div>
     </section>
   );
 }
+

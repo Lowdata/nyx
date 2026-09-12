@@ -2,10 +2,22 @@
 
 interface NavbarProps {
   walletAddress: string | null;
+  isConnecting?: boolean;
   onConnectWallet: () => void;
 }
 
-export default function Navbar({ walletAddress, onConnectWallet }: NavbarProps) {
+export function formatAddress(addr: string): string {
+  if (!addr) return '';
+  if (addr.startsWith('0xdemo_')) {
+    return `0xdemo...${addr.slice(-4)}`;
+  }
+  if (addr.length > 12) {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  }
+  return addr;
+}
+
+export default function Navbar({ walletAddress, isConnecting, onConnectWallet }: NavbarProps) {
   return (
     <nav className="nav" aria-label="Main Navigation">
       <a href="#top" className="nav-brand">
@@ -26,16 +38,19 @@ export default function Navbar({ walletAddress, onConnectWallet }: NavbarProps) 
       </a>
 
       <div className="nav-links">
-        <a href="#lore">The myth</a>
         <a href="#meter">Dream meter</a>
+        <a href="#tasks">Tasks</a>
+        <a href="#referrals">Referrals</a>
         <a href="#rituals">Rituals</a>
+        <a href="#lore">The myth</a>
+        <a href="#awaken">Mint</a>
       </div>
 
       <button
         type="button"
         className={`btn ${walletAddress ? 'btn-gold' : 'btn-ghost'}`}
         onClick={onConnectWallet}
-        disabled={!!walletAddress}
+        disabled={!!walletAddress || isConnecting}
         id="nav-connect"
       >
         {walletAddress ? (
@@ -50,7 +65,12 @@ export default function Navbar({ walletAddress, onConnectWallet }: NavbarProps) 
                 display: 'inline-block',
               }}
             />
-            <span>{walletAddress}</span>
+            <span>{formatAddress(walletAddress)}</span>
+          </>
+        ) : isConnecting ? (
+          <>
+            <span className="live-dot" />
+            <span>Signing...</span>
           </>
         ) : (
           'Connect wallet'
