@@ -1,0 +1,30 @@
+'use client';
+
+export default function Footer() {
+  return (
+    <footer aria-label="Page footer">
+      <div className="wrap foot-row">
+        <span>© 2026 Nyx. All dreams reserved.</span>
+        <div className="foot-links">
+          <a
+            href="https://x.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Visit Nyx on X"
+          >
+            X
+          </a>
+          <a
+            href="https://discord.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Join Nyx on Discord"
+          >
+            Discord
+          </a>
+          <a href="#lore">The myth</a>
+        </div>
+      </div>
+    </footer>
+  );
+}
