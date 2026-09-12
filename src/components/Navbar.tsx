@@ -39,43 +39,54 @@ export default function Navbar({ walletAddress, isConnecting, onConnectWallet }:
 
       <div className="nav-links">
         <a href="#meter">Dream meter</a>
-        <a href="#tasks">Tasks</a>
         <a href="#referrals">Referrals</a>
         <a href="#rituals">Rituals</a>
         <a href="#lore">The myth</a>
         <a href="#awaken">Mint</a>
       </div>
 
-      <button
-        type="button"
-        className={`btn ${walletAddress ? 'btn-gold' : 'btn-ghost'}`}
-        onClick={onConnectWallet}
-        disabled={!!walletAddress || isConnecting}
-        id="nav-connect"
-      >
-        {walletAddress ? (
-          <>
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor: '#10b981',
-                boxShadow: '0 0 8px #10b981',
-                display: 'inline-block',
-              }}
-            />
-            <span>{formatAddress(walletAddress)}</span>
-          </>
-        ) : isConnecting ? (
-          <>
-            <span className="live-dot" />
-            <span>Signing...</span>
-          </>
-        ) : (
-          'Connect wallet'
-        )}
-      </button>
+      <div className="nav-actions">
+        <a
+          href="https://twitter.com/intent/tweet?text=Nyx%20is%20dreaming...%20Wake%20the%20God%20of%20Sleep%20%F0%9F%8C%99"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="nav-twitter-btn"
+          aria-label="Share or follow on Twitter"
+        >
+          twitter
+        </a>
+
+        <button
+          type="button"
+          className={`btn ${walletAddress ? 'btn-gold' : 'btn-ghost'}`}
+          onClick={onConnectWallet}
+          disabled={!!walletAddress || isConnecting}
+          id="nav-connect"
+        >
+          {walletAddress ? (
+            <>
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: '#10b981',
+                  boxShadow: '0 0 8px #10b981',
+                  display: 'inline-block',
+                }}
+              />
+              <span>{formatAddress(walletAddress)}</span>
+            </>
+          ) : isConnecting ? (
+            <>
+              <span className="live-dot" />
+              <span>Signing...</span>
+            </>
+          ) : (
+            'Connect wallet'
+          )}
+        </button>
+      </div>
     </nav>
   );
 }

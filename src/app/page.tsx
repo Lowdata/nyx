@@ -119,6 +119,8 @@ export default function Home() {
           onCompleteTask={handleTaskComplete}
           referralCode={state.referralCode}
           onConnectWallet={handleConnect}
+          onOpenSpin={() => setSpinOpen(true)}
+          onOpenTweet={() => setTweetOpen(true)}
         />
 
         {/* 2. THE BIG DREAM METER (ON TOP) */}

@@ -182,6 +182,34 @@ section {
   color: var(--gold);
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-twitter-btn {
+  background: #ffffff;
+  color: #0b0e1c;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 8px 18px;
+  border-radius: 999px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.12);
+}
+
+.nav-twitter-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 255, 255, 0.22);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -227,7 +255,8 @@ section {
 /* ---------- HERO ---------- */
 .hero {
   position: relative;
-  min-height: clamp(660px, 86vh, 840px);
+  min-height: clamp(700px, 92vh, 900px);
+  padding-top: 76px;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -273,105 +302,80 @@ section {
   position: relative;
   z-index: 5;
   width: 100%;
-  max-width: 530px;
+  max-width: 490px;
   margin-left: max(4%, calc((100vw - 1280px) / 2));
-  padding: 40px 20px;
+  padding: 12px 16px 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
-.hero-panel .hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(155, 141, 224, 0.16);
-  border: 1px solid rgba(155, 141, 224, 0.32);
-  border-radius: 999px;
-  padding: 6px 16px;
+.hero-eyebrow {
+  color: #c4b5fd;
+  font-weight: 800;
   font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--cloud);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  letter-spacing: 0.04em;
   text-transform: uppercase;
-  align-self: flex-start;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+  text-shadow: 0 0 12px rgba(196, 181, 253, 0.4);
 }
 
-.hero-panel .hero-badge .badge-divider {
-  opacity: 0.4;
-}
-
-.hero-panel .hero-badge .badge-pct {
-  color: var(--gold);
-}
-
-.hero-panel .hero-title {
-  font-size: clamp(2rem, 3.2vw, 2.9rem);
+.hero-title {
+  font-family: var(--font-fredoka), sans-serif;
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
+  font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.15;
-  margin: 4px 0 2px 0;
-  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  line-height: 1.1;
+  margin: 0 0 6px 0;
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
 }
 
-.hero-panel .hero-sub {
+.hero-sub {
   color: var(--cloud-dim);
-  font-size: clamp(0.86rem, 1.05vw, 0.98rem);
-  line-height: 1.45;
-  margin: 0 0 8px 0;
-  max-width: 44ch;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  margin: 0 0 12px 0;
+  max-width: 42ch;
   text-align: left;
 }
 
-/* ---------- TASKS SECTION ---------- */
-.tasks-section {
-  padding: 80px 0;
-}
-
-.tasks-container {
-  max-width: 780px;
-  margin: 0 auto;
-}
-
 .task-card {
-  background: rgba(11, 14, 28, 0.7);
-  border: 1px solid var(--line);
+  background: rgba(9, 11, 24, 0.76);
+  border: 1px solid rgba(238, 236, 247, 0.16);
   border-radius: var(--radius-lg);
-  padding: clamp(20px, 2.5vw, 36px);
+  padding: 16px 18px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
 }
 
 .task-card-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
 .task-card h3 {
-  font-size: clamp(1.2rem, 1.8vw, 1.5rem);
-  margin-bottom: 4px;
+  font-family: var(--font-fredoka), sans-serif;
+  font-size: 1.15rem;
+  margin: 0 0 2px 0;
 }
 
 .task-card .task-card-note {
   color: var(--cloud-dim);
-  font-size: clamp(0.82rem, 0.95vw, 0.92rem);
+  font-size: 0.78rem;
+  margin: 0;
 }
 
 .task-count-pill {
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--gold);
-  background: rgba(240, 217, 160, 0.12);
-  border: 1px solid rgba(240, 217, 160, 0.25);
-  padding: 6px 14px;
+  background: rgba(240, 217, 160, 0.14);
+  border: 1px solid rgba(240, 217, 160, 0.3);
+  padding: 3px 10px;
   border-radius: 999px;
   white-space: nowrap;
 }
@@ -380,6 +384,41 @@ section {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-height: 210px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.task-list-wrap::-webkit-scrollbar {
+  width: 5px;
+}
+
+.task-list-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.task-list-wrap::-webkit-scrollbar-thumb {
+  background: rgba(238, 236, 247, 0.2);
+  border-radius: 999px;
+}
+
+.hero-ritual-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.hero-action-btn {
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .task-row {
@@ -471,6 +510,79 @@ section {
   border-color: transparent;
   color: var(--ink);
   box-shadow: 0 0 14px rgba(240, 217, 160, 0.4);
+}
+
+.task-card-meter {
+  display: block;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: rgba(155, 141, 224, 0.07);
+  border: 1px solid rgba(155, 141, 224, 0.2);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.task-card-meter:hover {
+  background: rgba(155, 141, 224, 0.12);
+  border-color: rgba(240, 217, 160, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.task-card-meter .mini-meter-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.84rem;
+  margin-bottom: 8px;
+}
+
+.meter-badge-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.meter-badge-title {
+  color: #c4b5fd;
+  font-weight: 700;
+  font-size: 0.84rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.meter-badge-pts {
+  color: var(--cloud-dim);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.meter-badge-pct {
+  color: var(--gold);
+  font-family: var(--font-fredoka), sans-serif;
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.mini-meter-tiers {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--cloud-dim);
+  font-weight: 600;
+}
+
+.mini-meter-tiers .tier-dot {
+  opacity: 0.65;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.mini-meter-tiers .tier-dot.active {
+  opacity: 1;
+  color: var(--gold);
+  font-weight: 700;
 }
 
 .mini-meter {

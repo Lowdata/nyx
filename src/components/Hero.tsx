@@ -8,19 +8,23 @@ import { SLEEP_END, FCFS_END } from '@/hooks/useDreamState';
 interface HeroProps {
   points: number;
   pct: number;
-  tasksDone: Record<string, boolean>;
+  tasksDone?: Record<string, boolean>;
   onCompleteTask: (taskId: string, pts: number) => void;
   referralCode: string | null;
   onConnectWallet?: () => void;
+  onOpenSpin?: () => void;
+  onOpenTweet?: () => void;
 }
 
 export default function Hero({
   points,
   pct,
-  tasksDone,
+  tasksDone = {},
   onCompleteTask,
   referralCode,
   onConnectWallet,
+  onOpenSpin,
+  onOpenTweet,
 }: HeroProps) {
   const [scrollY, setScrollY] = useState(0);
   const visualRef = useRef<HTMLDivElement>(null);
@@ -46,16 +50,16 @@ export default function Hero({
 
   const parallaxShift = Math.min(45, scrollY * 0.08);
 
-  let eyebrow = 'Deep asleep';
+  let eyebrow = 'DEEP ASLEEP';
   let title = 'Nyx is dreaming.';
   let sub = 'He wakes when the circle proves itself — one wallet, one post, one dream at a time.';
 
   if (points >= FCFS_END) {
-    eyebrow = 'Dawn breaking';
+    eyebrow = 'DAWN BREAKING';
     title = 'Nyx is waking.';
     sub = 'FCFS spots are open. Guaranteed spots need the whole circle, not just you.';
   } else if (points >= SLEEP_END) {
-    eyebrow = 'Stirring';
+    eyebrow = 'STIRRING';
     title = 'Nyx is stirring.';
     sub = 'Getting closer. A few more collective actions and FCFS spots unlock.';
   }
@@ -82,22 +86,19 @@ export default function Hero({
 
       {/* Hero Panel on the Left of the image */}
       <div className="hero-panel" id="tasks">
-        <div className="hero-badge">
-          <span className="badge-moon">🌑</span>
-          <span>{eyebrow}</span>
-          <span className="badge-divider">•</span>
-          <span className="badge-pct">{Math.round(pct)}% Awoken</span>
-        </div>
-
+        <p className="hero-eyebrow">{eyebrow}</p>
         <h1 className="hero-title">{title}</h1>
         <p className="hero-sub">{sub}</p>
 
-        {/* Task List on the left of the image */}
+        {/* Task List on the left of the image in the first glance */}
         <TaskCard
+          points={points}
           tasksDone={tasksDone}
           onCompleteTask={onCompleteTask}
           referralCode={referralCode}
           onConnectWallet={onConnectWallet}
+          onOpenSpin={onOpenSpin}
+          onOpenTweet={onOpenTweet}
           pct={pct}
         />
       </div>
