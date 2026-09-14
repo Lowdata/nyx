@@ -23,6 +23,7 @@ export default function Home() {
     connectError,
     completeTask,
     connectAndSignWallet,
+    disconnectWallet,
     redeemReferralCode,
     simulateFriendReferral,
     spinWheel,
@@ -108,6 +109,7 @@ export default function Home() {
         walletAddress={state.walletAddress}
         isConnecting={isConnecting}
         onConnectWallet={handleConnect}
+        onDisconnectWallet={disconnectWallet}
       />
 
       <main>

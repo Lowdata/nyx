@@ -203,6 +203,27 @@ export function useDreamState() {
     }
   }, [saveState]);
 
+  const disconnectWallet = useCallback(() => {
+    try {
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+    } catch {}
+    setSessionToken(null);
+    setConnectError(null);
+    saveState((prev) => ({
+      ...prev,
+      walletAddress: null,
+      referralCode: null,
+      referralsCount: 0,
+      referralPoints: 0,
+      referredByCode: null,
+      referralHistory: [],
+      tasksDone: {
+        ...prev.tasksDone,
+        connect: false,
+      },
+    }));
+  }, [saveState]);
+
   const addPoints = useCallback((n: number) => {
     saveState((prev) => ({
       ...prev,
@@ -448,6 +469,7 @@ export function useDreamState() {
     addPoints,
     completeTask,
     connectAndSignWallet,
+    disconnectWallet,
     redeemReferralCode,
     simulateFriendReferral,
     spinWheel,
