@@ -236,9 +236,9 @@ export function useDreamState() {
       if (prev.tasksDone[taskId]) return prev;
       const nextPoints = Math.min(TARGET, prev.points + pts);
 
-      // Async sync to MongoDB with Session Token
+      // Async sync to MongoDB tasks completion route with Session Token
       if (prev.walletAddress && sessionToken) {
-        fetch('/api/user/sync', {
+        fetch('/api/tasks/complete', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -247,9 +247,22 @@ export function useDreamState() {
           body: JSON.stringify({
             address: prev.walletAddress,
             taskId,
-            taskPts: pts,
           }),
-        }).catch(() => {});
+        }).catch(() => {
+          // Fallback sync
+          fetch('/api/user/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({
+              address: prev.walletAddress,
+              taskId,
+              taskPts: pts,
+            }),
+          }).catch(() => {});
+        });
       }
 
       return {

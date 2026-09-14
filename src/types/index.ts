@@ -3,8 +3,21 @@ export interface TaskItem {
   icon: string;
   title: string;
   pts: number;
+  description?: string;
+  intentUrl?: string;
   externalLink?: string;
+  type?: 'twitter_intent' | 'wallet' | 'referral' | 'social';
+  order?: number;
+  active?: boolean;
   onComplete?: (code?: string) => void;
+}
+
+export interface UserTaskRecord {
+  address: string;
+  taskId: string;
+  pts: number;
+  completedAt: number;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ReferralHistoryItem {

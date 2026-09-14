@@ -83,6 +83,19 @@ export async function POST(req: NextRequest) {
 
       updateDoc[`tasksDone.${taskId}`] = true;
       ptsToAdd += VALID_TASKS[taskId];
+
+      // Record in userTasks collection
+      const userTasksCollection = db.collection('userTasks');
+      try {
+        await userTasksCollection.insertOne({
+          address: normalizedAddress,
+          taskId,
+          pts: VALID_TASKS[taskId],
+          completedAt: Date.now(),
+        });
+      } catch {
+        // Continue if already recorded
+      }
     }
 
     // 4. Secure Server-Enforced Spin Processing

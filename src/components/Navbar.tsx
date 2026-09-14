@@ -104,12 +104,12 @@ export default function Navbar({
 
       <div className="nav-actions">
         <a
-          href="https://twitter.com/intent/tweet?text=Nyx%20is%20dreaming...%20Wake%20the%20God%20of%20Sleep%20%F0%9F%8C%99"
+          href="https://x.com/enternyx"
           target="_blank"
           rel="noopener noreferrer"
           className="nav-twitter-btn"
-          aria-label="Share or follow on X (formerly Twitter)"
-          title="Share on X"
+          aria-label="Follow @enternyx on X"
+          title="Follow @enternyx on X"
         >
           <svg
             width="15"

@@ -643,6 +643,48 @@ section {
   box-shadow: 0 0 14px rgba(240, 217, 160, 0.4);
 }
 
+.check-btn.verifying {
+  background: rgba(240, 217, 160, 0.15);
+  border: 1px solid rgba(240, 217, 160, 0.5);
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: wait;
+  box-shadow: 0 0 10px rgba(240, 217, 160, 0.25);
+  animation: taskPulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes taskPulse {
+  0% { transform: scale(1); opacity: 0.85; }
+  100% { transform: scale(1.05); opacity: 1; }
+}
+
+.task-status-pill {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(240, 217, 160, 0.1);
+  border: 1px solid rgba(240, 217, 160, 0.25);
+  color: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.task-spinner-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: taskDotPing 1s ease-in-out infinite;
+}
+
+@keyframes taskDotPing {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
 .task-card-meter {
   display: block;
   margin-bottom: 12px;

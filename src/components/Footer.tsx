@@ -7,12 +7,12 @@ export default function Footer() {
         <span>© 2026 Nyx. All dreams reserved.</span>
         <div className="foot-links">
           <a
-            href="https://x.com"
+            href="https://x.com/enternyx"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Visit Nyx on X"
+            aria-label="Visit @enternyx on X"
           >
-            X
+            X (@enternyx)
           </a>
           <a
             href="https://discord.com"
