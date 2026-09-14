@@ -88,12 +88,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cannot refer yourself.' }, { status: 400 });
     }
 
+    // Enforce max referral cap (10 referrals per user)
+    if ((referrer.referralsCount || 0) >= 10) {
+      return NextResponse.json(
+        { error: 'This referral link has reached its maximum use limit.' },
+        { status: 400 }
+      );
+    }
+
     // 4. Atomic conditional update to prevent double redemption race conditions
     const updateResult = await usersCollection.updateOne(
       { address: normalizedAddress, referredByCode: { $in: [null, undefined] } },
       {
         $set: { referredByCode: cleanCode },
-        $inc: { points: 100 },
+        $inc: { points: 10 },
       }
     );
 
@@ -104,21 +112,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Reward referrer atomically
+    // 5. Reward referrer atomically with cap
     const historyEntry = {
       id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       address: `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}`,
       timestamp: Date.now(),
-      pts: 100,
+      pts: 10,
     };
 
+    const referrerNewPoints = Math.min(2200, (referrer.points || 0) + 10);
     await usersCollection.updateOne(
       { referralCode: cleanCode },
       {
+        $set: { points: referrerNewPoints },
         $inc: {
-          points: 100,
           referralsCount: 1,
-          referralPoints: 100,
+          referralPoints: 10,
         },
         $push: {
           referralHistory: {
@@ -131,7 +140,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Welcome bonus unlocked! +100 wake points added from ${cleanCode}.`,
+      message: `Welcome bonus unlocked! +10 wake points added from ${cleanCode}.`,
     });
   } catch (error) {
     console.error('Redeem error:', error);

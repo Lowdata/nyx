@@ -119,6 +119,8 @@ export default function TaskCard({
     if (!hasRunningTimers) return;
 
     const interval = setInterval(() => {
+      const completedList: { taskId: string; pts: number }[] = [];
+
       setActiveTimers((prev) => {
         const next = { ...prev };
         let updated = false;
@@ -131,15 +133,23 @@ export default function TaskCard({
             delete next[taskId];
             updated = true;
 
-            // Trigger task completion after 10s auto-verification
             const matchedTask = tasksRef.current.find((t) => t.id === taskId);
             const pts = matchedTask ? matchedTask.pts : 100;
-            onCompleteRef.current(taskId, pts);
+            completedList.push({ taskId, pts });
           }
         }
 
         return updated ? next : prev;
       });
+
+      // Schedule callback outside the React state updater to avoid setState in render error
+      if (completedList.length > 0) {
+        setTimeout(() => {
+          for (const item of completedList) {
+            onCompleteRef.current(item.taskId, item.pts);
+          }
+        }, 0);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -308,10 +318,10 @@ export default function TaskCard({
                   type="button"
                   className="check-btn verifying"
                   aria-label={`${t.title} verifying`}
-                  title={`Completing in ${remainingSec}s`}
+                  title="Verifying completion..."
                   disabled
                 >
-                  {remainingSec}s
+                  <span className="check-btn-spinner" />
                 </button>
               ) : (
                 <button

@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         user: {
           address: existingUser.address,
           referralCode: existingUser.referralCode,
-          points: existingUser.points || 150,
+          points: existingUser.points ?? 50,
           tasksDone: existingUser.tasksDone || { connect: true },
           tweetClaimed: !!existingUser.tweetClaimed,
           submittedTweetUrls: existingUser.submittedTweetUrls || [],
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       attempts++;
     }
 
-    let initialPoints = 150; // Wallet connect task reward
+    let initialPoints = 50; // Wallet connect task reward
     let appliedRefCode: string | null = null;
 
     // 9. Handle invite code if provided during first connect
@@ -129,22 +129,24 @@ export async function POST(req: NextRequest) {
         const referrer = await usersCollection.findOne({ referralCode: cleanRef });
         if (referrer && referrer.address !== normalizedAddress) {
           appliedRefCode = cleanRef;
-          initialPoints += 100; // Welcome invite bonus
+          initialPoints += 10; // Welcome invite bonus (10 pts)
 
           const historyEntry = {
             id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
             address: `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}`,
             timestamp: Date.now(),
-            pts: 100,
+            pts: 10,
           };
 
+          // Cap referrer points with Math.min
+          const referrerNewPoints = Math.min(2200, (referrer.points || 0) + 10);
           await usersCollection.updateOne(
             { referralCode: cleanRef },
             {
+              $set: { points: referrerNewPoints },
               $inc: {
-                points: 100,
                 referralsCount: 1,
-                referralPoints: 100,
+                referralPoints: 10,
               },
               $push: {
                 referralHistory: {

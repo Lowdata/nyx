@@ -5,6 +5,11 @@ import { verifySessionToken, extractBearerToken } from '@/lib/auth';
 const MAX_TARGET_POINTS = 2200;
 
 export async function POST(req: NextRequest) {
+  // DEV-ONLY: Block this endpoint entirely in production
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not available in production.' }, { status: 405 });
+  }
+
   try {
     const authHeader = req.headers.get('authorization');
     const token = extractBearerToken(authHeader);
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     const randomHex = Math.random().toString(16).substring(2, 6);
     const mockAddress = `0x${randomHex}...${Math.random().toString(16).substring(2, 6)}`;
-    const pts = 100;
+    const pts = 10; // Dev simulation: 10 pts (matches calibrated referral value)
 
     const historyItem = {
       id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ReferralHistoryItem } from '@/types';
 
 import { formatAddress } from './Navbar';
@@ -45,10 +45,16 @@ export default function ReferralSection({
   const [redeemFeedback, setRedeemFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [simulationToast, setSimulationToast] = useState<string | null>(null);
 
+  const [origin, setOrigin] = useState('https://nyx.gg');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.origin) {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+
   const activeCode = referralCode || '';
-  const shareUrl = typeof window !== 'undefined' && activeCode
-    ? `${window.location.origin}/?ref=${activeCode}` 
-    : `https://nyx.gg/?ref=${activeCode || 'SUMMON'}`;
+  const shareUrl = `${origin}/?ref=${activeCode || 'SUMMON'}`;
 
   const currentTier = getReferralTier(referralsCount);
 
@@ -111,8 +117,8 @@ export default function ReferralSection({
           <p className="kicker">Circle summons</p>
           <h2 id="referral-heading">The Referral Circle</h2>
           <p>
-            Nyx only wakes when the entire circle gathers. Share your summon link
-            to earn +100 wake points for every friend who joins, unlock exclusive
+          Nyx only wakes when the entire circle gathers. Share your summon link
+            to earn +10 wake points for every friend who joins, unlock exclusive
             circle tiers, and push the collective meter closer to the Guaranteed mint.
           </p>
         </div>
@@ -138,7 +144,7 @@ export default function ReferralSection({
               <span className="ref-stat-number ref-gold">+{referralPoints}</span>
               <span className="ref-stat-icon">✦</span>
             </div>
-            <span className="ref-stat-sub">+100 pts per verified invite</span>
+            <span className="ref-stat-sub">+10 pts per verified invite (max 10 referrals)</span>
           </div>
 
           <div className="ref-stat-card">
@@ -261,7 +267,7 @@ export default function ReferralSection({
                     title="Simulate a friend joining using your code to test live meter progression"
                   >
                     <span>⚡</span>
-                    <span>Simulate invite (+100 pts)</span>
+                    <span>Simulate invite (+10 pts)</span>
                   </button>
                 </div>
 
@@ -278,13 +284,13 @@ export default function ReferralSection({
             <div className="ref-redeem-box">
               <h4>Were you invited by a dreamer?</h4>
               <p className="ref-redeem-desc">
-                Enter your friend&apos;s code to claim an instant +100 wake points bonus.
+                Enter your friend&apos;s code to claim an instant +10 wake points bonus.
               </p>
 
               {referredByCode ? (
                 <div className="ref-claimed-badge">
                   <span>✓</span>
-                  <span>Invite code <strong>{referredByCode}</strong> applied (+100 pts)</span>
+                  <span>Invite code <strong>{referredByCode}</strong> applied (+10 pts)</span>
                 </div>
               ) : (
                 <form onSubmit={handleRedeem} className="ref-redeem-form">
@@ -298,7 +304,7 @@ export default function ReferralSection({
                     aria-label="Invite code"
                   />
                   <button type="submit" className="btn btn-gold ref-redeem-submit">
-                    Claim +100 pts
+                    Claim +10 pts
                   </button>
                 </form>
               )}

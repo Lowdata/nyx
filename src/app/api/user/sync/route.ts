@@ -1,24 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { verifySessionToken, extractBearerToken } from '@/lib/auth';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 const VALID_TASKS: Record<string, number> = {
-  connect: 150,
+  connect: 50,
   connectx: 200,
-  follow: 100,
-  like: 50,
-  repost: 100,
-  comment: 50,
-  discord: 150,
-  referral: 100,
+  follow: 30,
+  like: 20,
+  repost: 30,
+  comment: 20,
+  discord: 40,
+  referral: 40,
 };
 
-const ALLOWED_SPIN_VALUES = new Set([25, 50, 75, 100, 150, 200]);
+const ALLOWED_SPIN_VALUES = new Set([10, 15, 20, 25, 30, 40, 50]);
 const SPIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MAX_TARGET_POINTS = 2200;
 
+
 export async function POST(req: NextRequest) {
   try {
+    // 0. IP Rate Limiting
+    const clientIp = getClientIp(req.headers);
+    const rateCheck = checkRateLimit(`sync:${clientIp}`, 30, 60_000);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
+      );
+    }
+
     // 1. Authenticate with Session Token
     const authHeader = req.headers.get('authorization');
     const token = extractBearerToken(authHeader);
@@ -166,5 +178,50 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('User sync error:', error);
     return NextResponse.json({ error: 'Failed to sync user state' }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const authHeader = req.headers.get('authorization');
+    const token = extractBearerToken(authHeader);
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized: Session token required' }, { status: 401 });
+    }
+
+    const session = verifySessionToken(token);
+    if (!session.valid || !session.address) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid session' }, { status: 401 });
+    }
+
+    const db = await getDb();
+    const usersCollection = db.collection('users');
+    const user = await usersCollection.findOne({ address: session.address.toLowerCase() });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        address: user.address,
+        referralCode: user.referralCode,
+        points: user.points ?? 50,
+        tasksDone: user.tasksDone || { connect: true },
+        tweetClaimed: !!user.tweetClaimed,
+        submittedTweetUrls: user.submittedTweetUrls || [],
+        lastSpinAt: user.lastSpinAt || null,
+        fcfsCelebrated: !!user.fcfsCelebrated,
+        referralsCount: user.referralsCount || 0,
+        referralPoints: user.referralPoints || 0,
+        referredByCode: user.referredByCode || null,
+        referralHistory: user.referralHistory || [],
+      },
+    });
+  } catch (error) {
+    console.error('GET /api/user/sync error:', error);
+    return NextResponse.json({ error: 'Failed to retrieve user' }, { status: 500 });
   }
 }

@@ -5,7 +5,7 @@ import { DreamState, DreamStage } from '@/types';
 
 export const TARGET = 2200;
 export const SLEEP_END = 600;
-export const FCFS_END = 1100;
+export const FCFS_END = 1500;
 export const SPIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 const STORAGE_KEY = 'nyx_dream_state_v2';
@@ -62,26 +62,74 @@ export function useDreamState() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
 
-  // Load state and session token from localStorage on client mount
+  // Load state and session token from localStorage on client mount & sync from DB
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setState((prev) => ({
-          ...prev,
-          ...parsed,
-          tasksDone: { ...DEFAULT_STATE.tasksDone, ...(parsed.tasksDone || {}) },
-          referralHistory: parsed.referralHistory || [],
-        }));
-      }
-
       const savedToken = localStorage.getItem(SESSION_TOKEN_KEY);
-      if (savedToken) {
-        setSessionToken(savedToken);
+      const saved = localStorage.getItem(STORAGE_KEY);
+
+      if (saved && savedToken) {
+        const parsed = JSON.parse(saved);
+        if (parsed.walletAddress) {
+          setState((prev) => ({
+            ...prev,
+            ...parsed,
+            tasksDone: { ...DEFAULT_STATE.tasksDone, ...(parsed.tasksDone || {}) },
+            referralHistory: parsed.referralHistory || [],
+          }));
+          setSessionToken(savedToken);
+
+          // Authoritatively sync user state from backend DB
+          fetch('/api/user/sync', {
+            headers: { Authorization: `Bearer ${savedToken}` },
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success && data.user) {
+                const u = data.user;
+                setState((prev) => ({
+                  ...prev,
+                  walletAddress: u.address,
+                  referralCode: u.referralCode,
+                  points: Math.min(TARGET, u.points ?? 0),
+                  tasksDone: {
+                    ...DEFAULT_STATE.tasksDone,
+                    ...(u.tasksDone || {}),
+                    connect: true,
+                  },
+                  tweetClaimed: !!u.tweetClaimed,
+                  submittedTweetUrls: u.submittedTweetUrls || [],
+                  lastSpinAt: u.lastSpinAt || null,
+                  fcfsCelebrated: !!u.fcfsCelebrated,
+                  referralsCount: u.referralsCount || 0,
+                  referralPoints: u.referralPoints || 0,
+                  referredByCode: u.referredByCode || null,
+                  referralHistory: u.referralHistory || [],
+                }));
+              } else if (!data.success) {
+                // Invalid or expired session - reset to clean state
+                localStorage.removeItem(SESSION_TOKEN_KEY);
+                localStorage.removeItem(STORAGE_KEY);
+                setSessionToken(null);
+                setState(DEFAULT_STATE);
+              }
+            })
+            .catch(() => {});
+        } else {
+          // No wallet associated with saved state — reset to clean DEFAULT_STATE
+          localStorage.removeItem(STORAGE_KEY);
+          setState(DEFAULT_STATE);
+        }
+      } else {
+        // Unauthenticated visitor — clean slate with 0 points
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(SESSION_TOKEN_KEY);
+        } catch {}
+        setState(DEFAULT_STATE);
       }
     } catch {
-      // Ignore localStorage errors
+      setState(DEFAULT_STATE);
     } finally {
       setIsLoaded(true);
     }
@@ -99,6 +147,44 @@ export function useDreamState() {
       return next;
     });
   }, []);
+
+  const disconnectWallet = useCallback(() => {
+    try {
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
+    setSessionToken(null);
+    setConnectError(null);
+    setState(DEFAULT_STATE);
+  }, []);
+
+  // Listen for MetaMask / Rabby account switches
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.ethereum) return;
+
+    const handleAccountsChanged = (accounts: unknown) => {
+      const accs = accounts as string[];
+      if (!accs || accs.length === 0) {
+        disconnectWallet();
+      } else if (state.walletAddress && accs[0].toLowerCase() !== state.walletAddress.toLowerCase()) {
+        disconnectWallet();
+      }
+    };
+
+    const eth = window.ethereum as {
+      on?: (event: string, handler: (accounts: unknown) => void) => void;
+      removeListener?: (event: string, handler: (accounts: unknown) => void) => void;
+    };
+
+    if (eth && typeof eth.on === 'function') {
+      eth.on('accountsChanged', handleAccountsChanged);
+    }
+    return () => {
+      if (eth && typeof eth.removeListener === 'function') {
+        eth.removeListener('accountsChanged', handleAccountsChanged);
+      }
+    };
+  }, [state.walletAddress, disconnectWallet]);
 
   // Connect and Sign Wallet: Authentic Web3 or Testnet Demo fallback
   const connectAndSignWallet = useCallback(async (options?: { isDemo?: boolean }): Promise<{ success: boolean; error?: string }> => {
@@ -177,20 +263,27 @@ export function useDreamState() {
       }
 
       const user = data.user;
-      saveState((prev) => ({
-        ...prev,
+      const verifiedPoints = typeof user.points === 'number' ? user.points : 50;
+
+      // Set authoritative state directly from verified user, never polluting with old session points
+      saveState(() => ({
+        ...DEFAULT_STATE,
         walletAddress: user.address,
         referralCode: user.referralCode,
-        points: Math.min(TARGET, Math.max(prev.points, user.points)),
+        points: Math.min(TARGET, verifiedPoints),
         tasksDone: {
-          ...prev.tasksDone,
-          ...user.tasksDone,
+          ...DEFAULT_STATE.tasksDone,
+          ...(user.tasksDone || {}),
           connect: true,
         },
-        referralsCount: user.referralsCount || prev.referralsCount || 0,
-        referralPoints: user.referralPoints || prev.referralPoints || 0,
-        referredByCode: user.referredByCode || prev.referredByCode,
-        referralHistory: user.referralHistory || prev.referralHistory || [],
+        tweetClaimed: !!user.tweetClaimed,
+        submittedTweetUrls: user.submittedTweetUrls || [],
+        lastSpinAt: user.lastSpinAt || null,
+        fcfsCelebrated: !!user.fcfsCelebrated,
+        referralsCount: user.referralsCount || 0,
+        referralPoints: user.referralPoints || 0,
+        referredByCode: user.referredByCode || null,
+        referralHistory: user.referralHistory || [],
       }));
 
       setIsConnecting(false);
@@ -201,27 +294,6 @@ export function useDreamState() {
       setIsConnecting(false);
       return { success: false, error: msg };
     }
-  }, [saveState]);
-
-  const disconnectWallet = useCallback(() => {
-    try {
-      localStorage.removeItem(SESSION_TOKEN_KEY);
-    } catch {}
-    setSessionToken(null);
-    setConnectError(null);
-    saveState((prev) => ({
-      ...prev,
-      walletAddress: null,
-      referralCode: null,
-      referralsCount: 0,
-      referralPoints: 0,
-      referredByCode: null,
-      referralHistory: [],
-      tasksDone: {
-        ...prev.tasksDone,
-        connect: false,
-      },
-    }));
   }, [saveState]);
 
   const addPoints = useCallback((n: number) => {
@@ -408,12 +480,12 @@ export function useDreamState() {
       saveState((prev) => ({
         ...prev,
         referredByCode: cleanCode,
-        points: Math.min(TARGET, prev.points + 100),
+        points: Math.min(TARGET, prev.points + 10),
       }));
 
       return {
         success: true,
-        message: `Welcome bonus unlocked! +100 wake points added from ${cleanCode}.`,
+        message: `Welcome bonus unlocked! +10 wake points added from ${cleanCode}.`,
       };
     },
     [state.referredByCode, state.referralCode, state.walletAddress, sessionToken, saveState]
@@ -422,7 +494,7 @@ export function useDreamState() {
   const simulateFriendReferral = useCallback(async (): Promise<{ success: boolean; pts: number; address: string }> => {
     const randomHex = Math.random().toString(16).substring(2, 6);
     let mockAddress = `0x${randomHex}...${Math.random().toString(16).substring(2, 6)}`;
-    const ptsAwarded = 100;
+    const ptsAwarded = 10; // Matches calibrated referral value
 
     if (state.walletAddress && sessionToken) {
       try {

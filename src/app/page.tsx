@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Backdrop from '@/components/Backdrop';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
@@ -12,8 +12,11 @@ import AwakenMint from '@/components/AwakenMint';
 import Footer from '@/components/Footer';
 import SpinModal from '@/components/modals/SpinModal';
 import TweetModal from '@/components/modals/TweetModal';
+import OnboardingModal from '@/components/modals/OnboardingModal';
 import SparkleBurst from '@/components/SparkleBurst';
 import { useDreamState, FCFS_END } from '@/hooks/useDreamState';
+
+const REPROMPT_DELAY_MS = 10_000; // 10 seconds
 
 export default function Home() {
   const {
@@ -39,6 +42,12 @@ export default function Home() {
   const [remainingSpinMs, setRemainingSpinMs] = useState(0);
   const [sparkleKey, setSparkleKey] = useState(0);
 
+  // Onboarding modal
+  const [onboardOpen, setOnboardOpen] = useState(false);
+  const [isReprompt, setIsReprompt] = useState(false);
+  const dismissedAtRef = useRef<number | null>(null);
+  const repromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Sync spin cooldown countdown
   useEffect(() => {
     if (!isLoaded) return;
@@ -48,6 +57,48 @@ export default function Home() {
     }, 1000);
     return () => clearInterval(interval);
   }, [isLoaded, getRemainingSpinMs]);
+
+  // Onboarding: fire 1.5s after load if wallet not connected
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (state.walletAddress) return; // Already authed — never show
+    const t = setTimeout(() => {
+      setIsReprompt(false);
+      setOnboardOpen(true);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [isLoaded, state.walletAddress]);
+
+  // Onboarding: dismiss permanently on wallet connect
+  useEffect(() => {
+    if (state.walletAddress && onboardOpen) {
+      setOnboardOpen(false);
+      if (repromptTimerRef.current) clearTimeout(repromptTimerRef.current);
+    }
+  }, [state.walletAddress, onboardOpen]);
+
+  const handleOnboardClose = () => {
+    if (state.walletAddress) {
+      // Fully authed — dismiss permanently
+      setOnboardOpen(false);
+      return;
+    }
+    // Not yet authed — re-fire in 10 seconds
+    setOnboardOpen(false);
+    dismissedAtRef.current = Date.now();
+    if (repromptTimerRef.current) clearTimeout(repromptTimerRef.current);
+    repromptTimerRef.current = setTimeout(() => {
+      setIsReprompt(true);
+      setOnboardOpen(true);
+    }, REPROMPT_DELAY_MS);
+  };
+
+  // Cleanup reprompt timer on unmount
+  useEffect(() => {
+    return () => {
+      if (repromptTimerRef.current) clearTimeout(repromptTimerRef.current);
+    };
+  }, []);
 
   // Check for FCFS milestone celebration
   useEffect(() => {
@@ -177,6 +228,19 @@ export default function Home() {
         onClose={() => setTweetOpen(false)}
         onSubmitTweet={handleTweetSubmit}
         isClaimed={state.tweetClaimed}
+      />
+
+      <OnboardingModal
+        isOpen={onboardOpen}
+        isReprompt={isReprompt}
+        onClose={handleOnboardClose}
+        walletAddress={state.walletAddress}
+        isConnecting={isConnecting}
+        connectError={connectError}
+        onConnectWallet={handleConnect}
+        onCompleteTask={handleTaskComplete}
+        twitterDone={!!state.tasksDone?.follow}
+        onRedeemCode={handleRedeemReferral}
       />
     </>
   );
