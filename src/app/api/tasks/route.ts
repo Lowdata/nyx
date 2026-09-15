@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, DEFAULT_TASKS, ensureTasksSeeded } from '@/lib/mongodb';
 import { extractBearerToken, verifySessionToken } from '@/lib/auth';
+import { recordTrafficHit } from '@/lib/security';
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
     }
 
     await ensureTasksSeeded(db);
+    await recordTrafficHit(req.headers, '/api/tasks', db);
 
     const tasksCol = db.collection('tasks');
     const tasksFromDb = await tasksCol

@@ -148,9 +148,11 @@ export async function POST(req: NextRequest) {
         { $set: { lastAuthAt: Date.now() } }
       );
 
-      // Record this IP-wallet connection for Sybil tracking (fire-and-forget)
-      void recordIpWalletConnection(realIp, normalizedAddress, db);
-      void recordTrafficHit(req.headers, '/api/auth/wallet', db);
+      // Record this IP-wallet connection for Sybil tracking and traffic analytics
+      await Promise.allSettled([
+        recordIpWalletConnection(realIp, normalizedAddress, db),
+        recordTrafficHit(req.headers, '/api/auth/wallet', db),
+      ]);
 
       return NextResponse.json({
         success: true,
@@ -252,9 +254,11 @@ export async function POST(req: NextRequest) {
 
     await usersCollection.insertOne(newUser);
 
-    // Record IP-wallet connection for Sybil tracking and traffic log (fire-and-forget)
-    void recordIpWalletConnection(realIp, normalizedAddress, db);
-    void recordTrafficHit(req.headers, '/api/auth/wallet', db);
+    // Record IP-wallet connection for Sybil tracking and traffic log
+    await Promise.allSettled([
+      recordIpWalletConnection(realIp, normalizedAddress, db),
+      recordTrafficHit(req.headers, '/api/auth/wallet', db),
+    ]);
 
     return NextResponse.json({
       success: true,

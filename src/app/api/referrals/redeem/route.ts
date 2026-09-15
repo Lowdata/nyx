@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    void recordTrafficHit(req.headers, '/api/referrals/redeem', db);
+    await recordTrafficHit(req.headers, '/api/referrals/redeem', db);
 
     const user = await usersCollection.findOne({ address: normalizedAddress });
     if (!user) {

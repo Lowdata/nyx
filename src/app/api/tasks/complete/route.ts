@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    void recordTrafficHit(req.headers, '/api/tasks/complete', db);
+    await recordTrafficHit(req.headers, '/api/tasks/complete', db);
 
     await ensureTasksSeeded(db);
 
