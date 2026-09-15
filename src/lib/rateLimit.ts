@@ -46,6 +46,10 @@ export function checkRateLimit(
 }
 
 export function getClientIp(headers: Headers): string {
+  // Cloudflare sets cf-connecting-ip to the real visitor IP (cannot be spoofed when proxied)
+  const cfIp = headers.get('cf-connecting-ip');
+  if (cfIp) return cfIp.trim();
+
   const forwarded = headers.get('x-forwarded-for');
   if (forwarded) {
     return forwarded.split(',')[0].trim();

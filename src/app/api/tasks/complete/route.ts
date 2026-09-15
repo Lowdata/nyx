@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, DEFAULT_TASKS, ensureTasksSeeded } from '@/lib/mongodb';
 import { extractBearerToken, verifySessionToken } from '@/lib/auth';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { checkPersistentBlock, recordTrafficHit, getRealIp } from '@/lib/security';
 
 const MAX_TARGET_POINTS = 2200;
 
@@ -58,6 +59,19 @@ export async function POST(req: NextRequest) {
     }
 
     const db = await getDb();
+
+    // 4. Ban check — prevent banned actors from completing tasks
+    const realIp = getRealIp(req.headers);
+    const blockCheck = await checkPersistentBlock(realIp, normalizedAddress, db);
+    if (blockCheck.blocked) {
+      return NextResponse.json(
+        { error: `Access denied: ${blockCheck.reason || 'This entity has been blocked'}` },
+        { status: 403 }
+      );
+    }
+
+    void recordTrafficHit(req.headers, '/api/tasks/complete', db);
+
     await ensureTasksSeeded(db);
 
     const tasksCol = db.collection('tasks');

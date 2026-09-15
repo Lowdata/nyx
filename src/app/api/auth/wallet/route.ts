@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { verifyWalletSignature, generateReferralCode, createSessionToken } from '@/lib/auth';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import {
+  isLegitWalletAddress,
+  checkPersistentBlock,
+  recordIpWalletConnection,
+  recordTrafficHit,
+  getRealIp,
+} from '@/lib/security';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +31,15 @@ export async function POST(req: NextRequest) {
 
     const normalizedAddress = address.toLowerCase();
 
-    // 2. Security Check on Address format
+    // 2. Dead / burn / low-entropy wallet filter
+    if (!isLegitWalletAddress(normalizedAddress)) {
+      return NextResponse.json(
+        { error: 'Suspicious or invalid wallet address. Zero addresses and burn wallets are not permitted.' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Security Check on Address format
     const isStandardEvm = /^0x[a-f0-9]{40}$/i.test(normalizedAddress);
     const isDemoAddress = /^0xdemo_[a-f0-9]{4,32}$/i.test(normalizedAddress);
 
@@ -33,6 +48,17 @@ export async function POST(req: NextRequest) {
     }
 
     const db = await getDb();
+
+    // 4. Persistent ban check — runs before any DB user lookup
+    const realIp = getRealIp(req.headers);
+    const blockCheck = await checkPersistentBlock(realIp, normalizedAddress, db);
+    if (blockCheck.blocked) {
+      return NextResponse.json(
+        { error: `Access denied: ${blockCheck.reason || 'This entity has been blocked'}` },
+        { status: 403 }
+      );
+    }
+
     const usersCollection = db.collection('users');
     const usedNoncesCollection = db.collection('usedNonces');
 
@@ -88,6 +114,10 @@ export async function POST(req: NextRequest) {
         { address: normalizedAddress },
         { $set: { lastAuthAt: Date.now() } }
       );
+
+      // Record this IP-wallet connection for Sybil tracking (fire-and-forget)
+      void recordIpWalletConnection(realIp, normalizedAddress, db);
+      void recordTrafficHit(req.headers, '/api/auth/wallet', db);
 
       return NextResponse.json({
         success: true,
@@ -188,6 +218,10 @@ export async function POST(req: NextRequest) {
     };
 
     await usersCollection.insertOne(newUser);
+
+    // Record IP-wallet connection for Sybil tracking and traffic log (fire-and-forget)
+    void recordIpWalletConnection(realIp, normalizedAddress, db);
+    void recordTrafficHit(req.headers, '/api/auth/wallet', db);
 
     return NextResponse.json({
       success: true,

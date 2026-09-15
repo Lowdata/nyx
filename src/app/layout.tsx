@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Fredoka, Manrope } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 
 const fredoka = Fredoka({
@@ -43,7 +44,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${fredoka.variable} ${manrope.variable}`} suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+
+        {/* Cloudflare Web Analytics — loads after page is interactive, non-blocking */}
+        <Script
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "3bd36a4d49eb44f49546dd7bc802eab1"}'
+          strategy="afterInteractive"
+        />
+      </body>
     </html>
   );
 }

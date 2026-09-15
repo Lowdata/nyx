@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { verifySessionToken, extractBearerToken } from '@/lib/auth';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { checkPersistentBlock, isSameIpReferral, recordTrafficHit, getRealIp } from '@/lib/security';
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,6 +64,18 @@ export async function POST(req: NextRequest) {
     const db = await getDb();
     const usersCollection = db.collection('users');
 
+    // Ban check
+    const realIp = getRealIp(req.headers);
+    const blockCheck = await checkPersistentBlock(realIp, normalizedAddress, db);
+    if (blockCheck.blocked) {
+      return NextResponse.json(
+        { error: `Access denied: ${blockCheck.reason || 'This entity has been blocked'}` },
+        { status: 403 }
+      );
+    }
+
+    void recordTrafficHit(req.headers, '/api/referrals/redeem', db);
+
     const user = await usersCollection.findOne({ address: normalizedAddress });
     if (!user) {
       return NextResponse.json({ error: 'Wallet not registered. Connect wallet first.' }, { status: 404 });
@@ -86,6 +99,15 @@ export async function POST(req: NextRequest) {
 
     if (referrer.address === normalizedAddress) {
       return NextResponse.json({ error: 'Cannot refer yourself.' }, { status: 400 });
+    }
+
+    // Same-IP self-referral check — prevents one person creating multiple wallets to farm points
+    const sameIp = await isSameIpReferral(realIp, referrer.address, db);
+    if (sameIp) {
+      return NextResponse.json(
+        { error: 'Self-referral from the same network is not permitted.' },
+        { status: 400 }
+      );
     }
 
     // Enforce max referral cap (10 referrals per user)
