@@ -203,7 +203,17 @@ export function useDreamState() {
       let address: string;
       let signature = '';
       let message = '';
-      const isDemo = !!options?.isDemo || (!window.ethereum && typeof window !== 'undefined');
+
+      // Demo mode is only allowed on localhost — never on production
+      const isLocalhost = typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      const isDemo = !!options?.isDemo || (!window.ethereum && isLocalhost);
+
+      // On production: if no wallet extension, show a clear error instead of creating a demo account
+      if (!isDemo && !window.ethereum) {
+        setIsConnecting(false);
+        return { success: false, error: 'No wallet detected. Please install MetaMask or another Web3 wallet to connect.' };
+      }
 
       if (!isDemo && window.ethereum) {
         // 1. Request Ethereum account
