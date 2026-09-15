@@ -1,14 +1,10 @@
 import { MongoClient, Db } from 'mongodb';
 
 const uri = process.env.MONGO_URI;
-const dbName = process.env.MONGODB_DB_NAME;
+const dbName = process.env.DB_NAME || process.env.MONGODB_DB_NAME;
 
 if (!uri) {
   throw new Error('MONGO_URI environment variable is not set.');
-}
-
-if (!dbName) {
-  throw new Error('MONGODB_DB_NAME environment variable is not set.');
 }
 
 declare global {
@@ -135,7 +131,7 @@ let indexesInitialized = false;
 
 export async function getDb(): Promise<Db> {
   const client = await clientPromise;
-  const db = client.db(dbName);
+  const db = client.db(dbName || undefined);
 
   if (!indexesInitialized) {
     try {

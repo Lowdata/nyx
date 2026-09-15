@@ -144,7 +144,9 @@ export default function Home() {
   };
 
   const handleConnect = async (turnstileToken?: string) => {
-    const res = await connectAndSignWallet({ turnstileToken });
+    // Guard: direct onClick bindings pass a MouseEvent — discard anything that isn't a plain string
+    const safeToken = typeof turnstileToken === 'string' ? turnstileToken : undefined;
+    const res = await connectAndSignWallet({ turnstileToken: safeToken });
     if (res.success) {
       setSparkleKey((k) => k + 1);
     }
