@@ -2,14 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { blockActor, unblockActor } from '@/lib/security';
 
+import crypto from 'crypto';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 function verifyAdmin(req: NextRequest): boolean {
   if (!ADMIN_SECRET) return false;
+
+  // Rate limit admin attempts (15 attempts per minute per IP to prevent brute force)
+  const clientIp = getClientIp(req.headers);
+  const rateCheck = checkRateLimit(`admin_auth:${clientIp}`, 15, 60_000);
+  if (!rateCheck.success) return false;
+
   const authHeader = req.headers.get('authorization');
   if (!authHeader) return false;
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-  return token === ADMIN_SECRET;
+  const token = (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader).trim();
+  const secret = ADMIN_SECRET.trim();
+
+  const tokenBuf = Buffer.from(token);
+  const secretBuf = Buffer.from(secret);
+  if (tokenBuf.length !== secretBuf.length) return false;
+
+  return crypto.timingSafeEqual(tokenBuf, secretBuf);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

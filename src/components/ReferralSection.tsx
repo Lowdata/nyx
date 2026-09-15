@@ -260,15 +260,17 @@ export default function ReferralSection({
                     <span>✈</span>
                     <span>Telegram</span>
                   </button>
-                  <button
-                    type="button"
-                    className="btn ref-test-btn"
-                    onClick={handleSimulate}
-                    title="Simulate a friend joining using your code to test live meter progression"
-                  >
-                    <span>⚡</span>
-                    <span>Simulate invite (+10 pts)</span>
-                  </button>
+                  {process.env.NODE_ENV === 'development' && (
+                    <button
+                      type="button"
+                      className="btn ref-test-btn"
+                      onClick={handleSimulate}
+                      title="Simulate a friend joining using your code to test live meter progression"
+                    >
+                      <span>⚡</span>
+                      <span>Simulate invite (+10 pts)</span>
+                    </button>
+                  )}
                 </div>
 
                 {simulationToast && (

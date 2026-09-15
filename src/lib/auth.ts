@@ -1,7 +1,16 @@
 import { verifyMessage, isAddress } from 'viem';
 import crypto from 'crypto';
 
-const AUTH_SECRET = process.env.AUTH_SECRET || process.env.JWT_SECRET || 'nyx-cosmic-secret-key-salt-9872134098234';
+function getAuthSecret(): string {
+  const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: JWT_SECRET or AUTH_SECRET environment variable must be configured in production.');
+    }
+    return 'dev-local-only-insecure-fallback-secret';
+  }
+  return secret;
+}
 
 export function createSummonMessage(address: string, nonce: string, timestamp: number): string {
   return `Nyx — Wake the God of Sleep\n\nSign this message to authenticate your wallet and summon your dream circle.\n\nWallet: ${address.toLowerCase()}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
@@ -88,7 +97,7 @@ export function createSessionToken(address: string): string {
   };
 
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const hmac = crypto.createHmac('sha256', AUTH_SECRET);
+  const hmac = crypto.createHmac('sha256', getAuthSecret());
   hmac.update(payloadB64);
   const sig = hmac.digest('base64url');
 
@@ -111,7 +120,7 @@ export function verifySessionToken(token: string): { valid: boolean; address?: s
   const [payloadB64, providedSig] = parts;
 
   // Recompute HMAC signature
-  const hmac = crypto.createHmac('sha256', AUTH_SECRET);
+  const hmac = crypto.createHmac('sha256', getAuthSecret());
   hmac.update(payloadB64);
   const expectedSig = hmac.digest('base64url');
 

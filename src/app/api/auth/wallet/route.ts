@@ -95,8 +95,14 @@ export async function POST(req: NextRequest) {
     const usersCollection = db.collection('users');
     const usedNoncesCollection = db.collection('usedNonces');
 
-    // 3. Demo Mode Containment: Real wallets CANNOT bypass cryptographic signatures
+    // 3. Demo Mode Containment: Only permitted in local development
     if (isDemo) {
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+          { error: 'Demo mode is only permitted in local development.' },
+          { status: 403 }
+        );
+      }
       if (!isDemoAddress) {
         return NextResponse.json(
           { error: 'Standard wallet addresses require verified cryptographic signatures.' },
