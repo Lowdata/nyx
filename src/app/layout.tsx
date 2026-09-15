@@ -50,7 +50,7 @@ export default function RootLayout({
         {/* Cloudflare Web Analytics — loads after page is interactive, non-blocking */}
         <Script
           src="https://static.cloudflareinsights.com/beacon.min.js"
-          data-cf-beacon='{"token": "3bd36a4d49eb44f49546dd7bc802eab1"}'
+          data-cf-beacon={`{"token": "3bd36a4d49eb44f49546dd7bc802eab1"}`}
           strategy="afterInteractive"
         />
       </body>

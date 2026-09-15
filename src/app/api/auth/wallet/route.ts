@@ -23,13 +23,46 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { address, signature, message, refCode, isDemo } = body;
+    const { address, signature, message, refCode, isDemo, turnstileToken } = body;
 
     if (!address || typeof address !== 'string') {
       return NextResponse.json({ error: 'Valid wallet address is required' }, { status: 400 });
     }
 
     const normalizedAddress = address.toLowerCase();
+
+    // 2. Cloudflare Turnstile bot challenge verification
+    // Skipped in demo mode and when secret key is not configured (local dev)
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+    if (!isDemo && turnstileSecret) {
+      if (!turnstileToken || typeof turnstileToken !== 'string') {
+        return NextResponse.json(
+          { error: 'Bot verification required. Please try again.' },
+          { status: 400 }
+        );
+      }
+      try {
+        const cfRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            secret: turnstileSecret,
+            response: turnstileToken,
+            remoteip: getRealIp(req.headers),
+          }),
+        });
+        const cfData = await cfRes.json();
+        if (!cfData.success) {
+          return NextResponse.json(
+            { error: 'Bot verification failed. Please refresh and try again.' },
+            { status: 403 }
+          );
+        }
+      } catch {
+        // If Cloudflare is unreachable, allow through (fail open) to not block legit users
+        console.warn('Turnstile verification unreachable — allowing request through');
+      }
+    }
 
     // 2. Dead / burn / low-entropy wallet filter
     if (!isLegitWalletAddress(normalizedAddress)) {

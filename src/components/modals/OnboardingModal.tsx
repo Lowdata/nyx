@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Script from 'next/script';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface OnboardingModalProps {
   walletAddress: string | null;
   isConnecting: boolean;
   connectError: string | null;
-  onConnectWallet: () => Promise<{ success: boolean; error?: string }>;
+  onConnectWallet: (turnstileToken?: string) => Promise<{ success: boolean; error?: string }>;
   onCompleteTask: (taskId: string, pts: number) => void;
   twitterDone: boolean;
   onRedeemCode: (code: string) => Promise<{ success: boolean; message: string }>;
@@ -45,6 +46,38 @@ export default function OnboardingModal({
   const [refFeedback, setRefFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [refLoading, setRefLoading] = useState(false);
   const [stepKey, setStepKey] = useState(0);
+
+  // Cloudflare Turnstile
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
+
+  // Render the Turnstile invisible widget when the modal opens on step 1
+  useEffect(() => {
+    if (!isOpen || step !== 1 || !turnstileReady) return;
+    if (turnstileWidgetId.current) return; // already rendered
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (!siteKey || !turnstileContainerRef.current || !(window as any).turnstile) return;
+
+    turnstileWidgetId.current = (window as any).turnstile.render(turnstileContainerRef.current, {
+      sitekey: siteKey,
+      theme: 'dark',
+      appearance: 'interaction-only', // invisible unless needed
+      callback: (token: string) => setTurnstileToken(token),
+      'expired-callback': () => setTurnstileToken(null),
+      'error-callback': () => setTurnstileToken(null),
+    });
+  }, [isOpen, step, turnstileReady]);
+
+  // Reset widget on close
+  useEffect(() => {
+    if (!isOpen && turnstileWidgetId.current && (window as any).turnstile) {
+      (window as any).turnstile.reset(turnstileWidgetId.current);
+      turnstileWidgetId.current = null;
+      setTurnstileToken(null);
+    }
+  }, [isOpen]);
 
   // Advance to step 2 when wallet connects
   useEffect(() => {
@@ -103,9 +136,16 @@ export default function OnboardingModal({
   const handleConnect = async () => {
     setConnectingLocal(true);
     setLocalError(null);
-    const res = await onConnectWallet();
+    const res = await onConnectWallet(turnstileToken ?? undefined);
     setConnectingLocal(false);
-    if (!res.success) setLocalError(res.error || 'Connection failed. Try again.');
+    if (!res.success) {
+      setLocalError(res.error || 'Connection failed. Try again.');
+      // Reset Turnstile so user can retry
+      if (turnstileWidgetId.current && (window as any).turnstile) {
+        (window as any).turnstile.reset(turnstileWidgetId.current);
+        setTurnstileToken(null);
+      }
+    }
   };
 
   const handleOpenTwitter = () => {
@@ -202,8 +242,18 @@ export default function OnboardingModal({
                 ) : <>🔗 Connect &amp; Sign Wallet</>}
               </button>
               {(localError || connectError) && <p className="ob-error">{localError || connectError}</p>}
+
+              {/* Cloudflare Turnstile — invisible bot challenge mounts here */}
+              <div ref={turnstileContainerRef} style={{ marginTop: '8px' }} />
             </div>
           )}
+
+          {/* Cloudflare Turnstile script — loads once globally */}
+          <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            strategy="lazyOnload"
+            onLoad={() => setTurnstileReady(true)}
+          />
 
           {/* STEP 2 — Follow on X */}
           {effectiveStep === 2 && (

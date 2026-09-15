@@ -187,7 +187,7 @@ export function useDreamState() {
   }, [state.walletAddress, disconnectWallet]);
 
   // Connect and Sign Wallet: Authentic Web3 or Testnet Demo fallback
-  const connectAndSignWallet = useCallback(async (options?: { isDemo?: boolean }): Promise<{ success: boolean; error?: string }> => {
+  const connectAndSignWallet = useCallback(async (options?: { isDemo?: boolean; turnstileToken?: string }): Promise<{ success: boolean; error?: string }> => {
     setIsConnecting(true);
     setConnectError(null);
 
@@ -244,6 +244,7 @@ export function useDreamState() {
           message,
           refCode: refCodeFromUrl,
           isDemo,
+          turnstileToken: options?.turnstileToken,
         }),
       });
 

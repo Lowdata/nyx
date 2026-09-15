@@ -143,8 +143,8 @@ export default function Home() {
     return res;
   };
 
-  const handleConnect = async () => {
-    const res = await connectAndSignWallet();
+  const handleConnect = async (turnstileToken?: string) => {
+    const res = await connectAndSignWallet({ turnstileToken });
     if (res.success) {
       setSparkleKey((k) => k + 1);
     }
