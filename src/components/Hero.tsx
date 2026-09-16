@@ -11,6 +11,7 @@ interface HeroProps {
   tasksDone?: Record<string, boolean>;
   onCompleteTask: (taskId: string, pts: number) => void;
   referralCode: string | null;
+  referralsCount?: number;
   onConnectWallet?: () => void;
   onConnectTwitter?: () => void;
   onOpenSpin?: () => void;
@@ -23,6 +24,7 @@ export default function Hero({
   tasksDone = {},
   onCompleteTask,
   referralCode,
+  referralsCount,
   onConnectWallet,
   onConnectTwitter,
   onOpenSpin,
@@ -54,7 +56,7 @@ export default function Hero({
 
   let eyebrow = 'DEEP ASLEEP';
   let title = 'Nyx is dreaming.';
-  let sub = 'He wakes when the circle proves itself — one wallet, one post, one dream at a time.';
+  let sub = 'He wakes when the circle proves itself: one wallet, one post, one dream at a time.';
 
   if (points >= FCFS_END) {
     eyebrow = 'DAWN BREAKING';
@@ -98,6 +100,7 @@ export default function Hero({
           tasksDone={tasksDone}
           onCompleteTask={onCompleteTask}
           referralCode={referralCode}
+          referralsCount={referralsCount}
           onConnectWallet={onConnectWallet}
           onConnectTwitter={onConnectTwitter}
           onOpenSpin={onOpenSpin}

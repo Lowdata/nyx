@@ -13,7 +13,7 @@ function getAuthSecret(): string {
 }
 
 export function createSummonMessage(address: string, nonce: string, timestamp: number): string {
-  return `Nyx — Wake the God of Sleep\n\nSign this message to authenticate your wallet and summon your dream circle.\n\nWallet: ${address.toLowerCase()}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
+  return `Nyx: Wake the God of Sleep\n\nSign this message to authenticate your wallet and summon your dream circle.\n\nWallet: ${address.toLowerCase()}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
 }
 
 export function generateReferralCode(): string {

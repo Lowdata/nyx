@@ -230,7 +230,7 @@ export function useDreamState() {
         // 2. Build authentication summon message with anti-replay nonce
         const nonce = Math.random().toString(36).substring(2, 12);
         const timestamp = Date.now();
-        message = `Nyx — Wake the God of Sleep\n\nSign this message to authenticate your wallet and summon your dream circle.\n\nWallet: ${address.toLowerCase()}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
+        message = `Nyx: Wake the God of Sleep\n\nSign this message to authenticate your wallet and summon your dream circle.\n\nWallet: ${address.toLowerCase()}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
 
         // 3. Request personal_sign
         signature = (await window.ethereum.request({
@@ -391,7 +391,7 @@ export function useDreamState() {
     return Math.max(0, SPIN_COOLDOWN_MS - elapsed);
   }, [state.lastSpinAt]);
 
-  const submitTweet = useCallback((tweetUrl: string): { success: boolean; error?: string } => {
+  const submitTweet = useCallback(async (tweetUrl: string): Promise<{ success: boolean; error?: string }> => {
     const trimmed = tweetUrl.trim();
     if (!trimmed) {
       return { success: false, error: 'Paste your tweet link first.' };
@@ -421,40 +421,55 @@ export function useDreamState() {
       (u) => u.toLowerCase() === trimmed.toLowerCase()
     );
     if (alreadySubmitted) {
-      return { success: false, error: 'This link has already been submitted.' };
+      return {
+        success: false,
+        error: 'Nyx is watching from the shadows... That prophecy has already been claimed in the dream circle. Submit your own genuine dream.',
+      };
     }
 
-    saveState((prev) => {
-      if (prev.walletAddress && sessionToken) {
-        fetch('/api/user/sync', {
+    if (state.walletAddress && sessionToken) {
+      try {
+        const res = await fetch('/api/user/sync', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${sessionToken}`,
           },
           body: JSON.stringify({
-            address: prev.walletAddress,
+            address: state.walletAddress,
             tweetUrl: trimmed,
           }),
-        }).catch(() => {});
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          return {
+            success: false,
+            error: data.error || 'Nyx is watching from the shadows... That prophecy has already been claimed in the dream circle. Submit your own genuine dream.',
+          };
+        }
+      } catch {
+        return { success: false, error: 'Network issue verifying tweet with Nyx. Please try again.' };
       }
+    }
 
-      return {
-        ...prev,
-        tweetClaimed: true,
-        submittedTweetUrls: [...prev.submittedTweetUrls, trimmed],
-        points: Math.min(TARGET, prev.points + 50),
-      };
-    });
+    saveState((prev) => ({
+      ...prev,
+      tweetClaimed: true,
+      submittedTweetUrls: [...prev.submittedTweetUrls, trimmed],
+      points: Math.min(TARGET, prev.points + 50),
+    }));
 
     return { success: true };
-  }, [state.tweetClaimed, state.submittedTweetUrls, saveState, sessionToken]);
+  }, [state.tweetClaimed, state.submittedTweetUrls, state.walletAddress, saveState, sessionToken]);
 
   const redeemReferralCode = useCallback(
     async (code: string): Promise<{ success: boolean; message: string }> => {
       const cleanCode = code.trim().toUpperCase();
       if (!cleanCode) {
         return { success: false, message: 'Please enter a valid invite code.' };
+      }
+      if (!/^[A-Z0-9-]{4,16}$/.test(cleanCode)) {
+        return { success: false, message: 'Invalid invite code format. Check the code and try again.' };
       }
       if (state.referredByCode) {
         return {
@@ -466,7 +481,7 @@ export function useDreamState() {
         return { success: false, message: 'You cannot use your own referral code.' };
       }
 
-      // If wallet is connected, call backend MongoDB redeem with Session Token
+      // 1. If wallet is connected, call backend MongoDB redeem with Session Token
       if (state.walletAddress && sessionToken) {
         try {
           const res = await fetch('/api/referrals/redeem', {
@@ -481,24 +496,63 @@ export function useDreamState() {
             }),
           });
           const data = await res.json();
-          if (!res.ok) {
-            return { success: false, message: data.error || 'Failed to claim code' };
+          if (!res.ok || !data.success) {
+            return {
+              success: false,
+              message: data.error || 'Invalid invite code. That summons does not exist in the dream circle.',
+            };
           }
+
+          // Strictly save state ONLY when MongoDB redemption succeeds
+          saveState((prev) => ({
+            ...prev,
+            referredByCode: cleanCode,
+            points: Math.min(TARGET, prev.points + 10),
+          }));
+
+          return {
+            success: true,
+            message: data.message || `Welcome bonus unlocked! +10 wake points added from ${cleanCode}.`,
+          };
         } catch {
-          // Network failure fallback
+          return {
+            success: false,
+            message: 'Network issue verifying referral code with the server. Please try again.',
+          };
         }
       }
 
-      saveState((prev) => ({
-        ...prev,
-        referredByCode: cleanCode,
-        points: Math.min(TARGET, prev.points + 10),
-      }));
+      // 2. If wallet is NOT connected yet, verify against MongoDB before accepting code
+      try {
+        const res = await fetch('/api/referrals/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: cleanCode }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.valid) {
+          return {
+            success: false,
+            message: data.error || 'Invalid invite code: That summons does not exist in the dream circle.',
+          };
+        }
 
-      return {
-        success: true,
-        message: `Welcome bonus unlocked! +10 wake points added from ${cleanCode}.`,
-      };
+        // Code exists in DB! Record it so when user connects wallet, bonus will be claimed
+        saveState((prev) => ({
+          ...prev,
+          referredByCode: cleanCode,
+        }));
+
+        return {
+          success: true,
+          message: `Summons recognized from ${cleanCode}! Connect your wallet to claim your +10 bonus points.`,
+        };
+      } catch {
+        return {
+          success: false,
+          message: 'Could not reach the server to verify invite code. Please try again.',
+        };
+      }
     },
     [state.referredByCode, state.referralCode, state.walletAddress, sessionToken, saveState]
   );

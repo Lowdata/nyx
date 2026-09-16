@@ -7,6 +7,7 @@ interface TaskCardProps {
   tasksDone?: Record<string, boolean>;
   onCompleteTask: (taskId: string, pts: number) => void;
   referralCode: string | null;
+  referralsCount?: number;
   onConnectWallet?: () => void;
   onConnectTwitter?: () => void;
   onOpenSpin?: () => void;
@@ -65,8 +66,8 @@ const DEFAULT_TASK_ITEMS: TaskItem[] = [
   {
     id: 'referral',
     icon: '🎁',
-    title: 'Grab your referral link',
-    pts: 40,
+    title: 'Summon friends on X',
+    pts: 10,
     type: 'referral',
   },
 ];
@@ -75,6 +76,7 @@ export default function TaskCard({
   tasksDone = {},
   onCompleteTask,
   referralCode,
+  referralsCount,
   onConnectWallet,
   onConnectTwitter,
   onOpenSpin,
@@ -159,7 +161,7 @@ export default function TaskCard({
 
   // 3. User clicks any task: immediate action redirect/copy + start background verification
   const handleTaskClick = (task: TaskItem) => {
-    if (safeTasksDone[task.id]) return;
+    if (task.id !== 'referral' && safeTasksDone[task.id]) return;
     if (activeTimers[task.id] && activeTimers[task.id] > 0) return;
 
     // Direct Action Execution
@@ -175,21 +177,24 @@ export default function TaskCard({
     }
 
     if (task.id === 'referral') {
-      const link = referralCode
-        ? typeof window !== 'undefined'
-          ? `${window.location.origin}/?ref=${referralCode}`
-          : `https://nyx.gg/?ref=${referralCode}`
-        : typeof window !== 'undefined'
-        ? `${window.location.origin}/#referrals`
-        : 'https://nyx.gg/#referrals';
-
+      if (!referralCode) {
+        if (onConnectWallet) onConnectWallet();
+        return;
+      }
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://nyx.gg';
+      const shareUrl = `${origin}/?ref=${referralCode}`;
+      const text = encodeURIComponent(
+        `I am waking Nyx, the ancient god of sleep. 🌙\n\nEnter the dream circle and claim your wake points with my summon link:\n${shareUrl}\n\n#Nyx #Web3 #WakeNyx`
+      );
       try {
-        navigator.clipboard.writeText(link);
+        navigator.clipboard.writeText(shareUrl);
       } catch {
         // Clipboard fallback
       }
-      setCopiedLink(link);
-      setActiveTimers((prev) => ({ ...prev, [task.id]: 5 }));
+      setCopiedLink(shareUrl);
+      if (typeof window !== 'undefined') {
+        window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener,noreferrer');
+      }
       return;
     }
 
@@ -226,19 +231,19 @@ export default function TaskCard({
           aria-valuemax={100}
         >
           <div className="z z-sleep" title="Sleep tier (0 - 600 pts)" />
-          <div className="z z-fcfs" title="FCFS tier (600 - 1100 pts)" />
-          <div className="z z-gtd" title="Guaranteed tier (1100 - 2200 pts)" />
+          <div className="z z-fcfs" title="FCFS tier (600 - 1500 pts)" />
+          <div className="z z-gtd" title="Guaranteed tier (1500 - 2200 pts)" />
           <div className="zone-fill" style={{ width: `${pct}%` }} />
         </div>
         <div className="mini-meter-tiers">
           <span className={points === undefined || points < 600 ? 'tier-dot active' : 'tier-dot'}>
             🌑 Sleep
           </span>
-          <span className={points !== undefined && points >= 600 && points < 1100 ? 'tier-dot active' : 'tier-dot'}>
+          <span className={points !== undefined && points >= 600 && points < 1500 ? 'tier-dot active' : 'tier-dot'}>
             🌓 FCFS (600)
           </span>
-          <span className={points !== undefined && points >= 1100 ? 'tier-dot active' : 'tier-dot'}>
-            🌕 Guaranteed (1,100)
+          <span className={points !== undefined && points >= 1500 ? 'tier-dot active' : 'tier-dot'}>
+            🌕 Guaranteed (1,500)
           </span>
         </div>
       </a>
@@ -294,7 +299,7 @@ export default function TaskCard({
           <div className="task-info-card">
             <span className="task-info-badge quest">✦ Awakening Quests</span>
             <p>
-              Complete the quests below to push the meter into <strong>FCFS (600 pts)</strong> and <strong>Guaranteed (1,100 pts)</strong> mint tiers before Nyx awakes!
+              Complete the quests below to push the meter into <strong>FCFS (600 pts)</strong> and <strong>Guaranteed (1,500 pts)</strong> mint tiers before Nyx awakes!
             </p>
           </div>
         </div>
@@ -303,7 +308,10 @@ export default function TaskCard({
       {/* 3. TASK LIST */}
       <div className="task-list-wrap">
         {tasks.map((t) => {
-          const isDone = !!safeTasksDone[t.id];
+          const isDone =
+            t.id === 'referral'
+              ? !!safeTasksDone.referral || (typeof referralsCount === 'number' && referralsCount > 0)
+              : !!safeTasksDone[t.id];
           const remainingSec = activeTimers[t.id];
           const isVerifying = typeof remainingSec === 'number' && remainingSec > 0;
 
@@ -314,28 +322,32 @@ export default function TaskCard({
               onClick={() => {
                 if (!isDone && !isVerifying) {
                   handleTaskClick(t);
+                } else if (t.id === 'referral') {
+                  handleTaskClick(t);
                 }
               }}
-              style={{ cursor: isDone ? 'default' : 'pointer' }}
+              style={{ cursor: isDone && t.id !== 'referral' ? 'default' : 'pointer' }}
             >
               <div className="task-icon" aria-hidden="true">
                 {t.icon}
               </div>
               <div className="task-info">
                 <div className="task-title">{t.title}</div>
-                <div className="task-pts">+{t.pts} pts</div>
+                <div className="task-pts">
+                  {t.id === 'referral' ? '+10 pts / friend' : `+${t.pts} pts`}
+                </div>
 
                 {t.id === 'referral' && !isVerifying && (
                   <div className="task-extra">
-                    {isDone ? (
+                    {typeof referralsCount === 'number' && referralsCount > 0 ? (
                       <span>
-                        Link copied!{' '}
+                        {referralsCount} friend{referralsCount > 1 ? 's' : ''} joined!{' '}
                         <a href="#referrals" className="task-ref-link" onClick={(e) => e.stopPropagation()}>
                           Circle Hub →
                         </a>
                       </span>
                     ) : (
-                      <span>Copies link &amp; unlocks invite rewards</span>
+                      <span>Tweets your summon link on X</span>
                     )}
                   </div>
                 )}
@@ -348,7 +360,13 @@ export default function TaskCard({
                   className="check-btn done"
                   aria-pressed="true"
                   aria-label={`${t.title} completed`}
-                  disabled
+                  onClick={(e) => {
+                    if (t.id === 'referral') {
+                      e.stopPropagation();
+                      handleTaskClick(t);
+                    }
+                  }}
+                  title={t.id === 'referral' ? 'Tweet your summon link again' : `${t.title} completed`}
                 >
                   ✓
                 </button>
@@ -371,9 +389,9 @@ export default function TaskCard({
                     e.stopPropagation();
                     handleTaskClick(t);
                   }}
-                  title={t.intentUrl ? 'Open on X' : 'Complete task'}
+                  title={t.id === 'referral' ? 'Tweet summon link on X' : t.intentUrl ? 'Open on X' : 'Complete task'}
                 >
-                  {t.intentUrl || t.externalLink ? '↗' : '✓'}
+                  {t.id === 'referral' || t.intentUrl || t.externalLink ? '↗' : '✓'}
                 </button>
               )}
             </div>

@@ -19,7 +19,7 @@ export default function AwakenMint({
   const isFcfsOpen = points >= FCFS_END;
   const isStirring = points >= SLEEP_END && points < FCFS_END;
 
-  let pillText = '🌑 Locked — Nyx is still dreaming';
+  let pillText = '🌑 Locked: Nyx is still dreaming';
   let title = 'The mint is still dreaming.';
   let sub = 'Keep the meter climbing. Once it clears the Sleep tier, FCFS spots open up.';
   let fine = '';

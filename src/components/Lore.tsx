@@ -11,19 +11,19 @@ export default function Lore() {
           </h2>
           <p>
             Long before the first mint, Nyx ruled the space between waking and
-            dreaming. Tired of the noise, he folded himself into sleep —
-            skateboard tucked under one arm, camera at his side — and left the
+            dreaming. Tired of the noise, he folded himself into sleep,
+            skateboard tucked under one arm, camera at his side, and left the
             dream world quiet and unclaimed.
           </p>
           <p>
             He left one rule behind: he wakes only when a circle of dreamers
-            proves itself real. Not by luck, and not by one person alone — by
+            proves itself real. Not by luck, and not by one person alone, but by
             many small, ordinary acts of showing up.
           </p>
           <p>
             That&apos;s the loop this page runs on. Community actions fill the
             meter. The meter moves Nyx from sleep toward waking. And what you
-            unlock along the way depends on how far the whole circle gets — not
+            unlock along the way depends on how far the whole circle gets, not
             just you.
           </p>
         </div>

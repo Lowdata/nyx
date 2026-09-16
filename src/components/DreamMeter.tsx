@@ -40,8 +40,8 @@ export default function DreamMeter({ points, pct, stage }: DreamMeterProps) {
           <h2 id="meter-heading">The Dream Meter</h2>
           <p>
             Three tiers, one shared bar. Every quest completed, daily spin, and friend
-            invited fills the meter. Sleep is where everyone starts — FCFS opens at 600 pts,
-            and Guaranteed spots unlock when the circle reaches 1,100 pts together.
+            invited fills the meter. Sleep is where everyone starts. FCFS opens at 600 pts,
+            and Guaranteed spots unlock when the circle reaches 1,500 pts together.
           </p>
         </div>
 
@@ -72,8 +72,8 @@ export default function DreamMeter({ points, pct, stage }: DreamMeterProps) {
           >
             <div className="big-track-inner">
               <div className="z z-sleep" title="Sleep tier (0 - 600 pts)" />
-              <div className="z z-fcfs" title="FCFS tier (600 - 1100 pts)" />
-              <div className="z z-gtd" title="Guaranteed tier (1100 - 2200 pts)" />
+              <div className="z z-fcfs" title="FCFS tier (600 - 1500 pts)" />
+              <div className="z z-gtd" title="Guaranteed tier (1500 - 2200 pts)" />
             </div>
             <div className="big-fill" style={{ width: `${pct}%` }} />
             <div
@@ -106,7 +106,7 @@ export default function DreamMeter({ points, pct, stage }: DreamMeterProps) {
                 {isFcfsActive && <span className="tier-status-pill">Active</span>}
                 {points >= FCFS_END && <span className="tier-status-pill unlocked">Cleared ✓</span>}
               </div>
-              <span>600 – 1,100 pts</span>
+              <span>600 – 1,500 pts</span>
               <p className="tier-desc">First Come First Served mint spots open to anyone who participates.</p>
             </div>
             <div className={`tier-label gtd ${isGtdActive ? 'active gtd' : ''}`} id="tier-gtd">
@@ -114,7 +114,7 @@ export default function DreamMeter({ points, pct, stage }: DreamMeterProps) {
                 <h4>☀️ Guaranteed</h4>
                 {isGtdActive && <span className="tier-status-pill gold">Unlocked!</span>}
               </div>
-              <span>1,100 – 2,200 pts</span>
+              <span>1,500 – 2,200 pts</span>
               <p className="tier-desc">Guaranteed mint spot. Only unlocks when the circle moves as one.</p>
             </div>
           </div>

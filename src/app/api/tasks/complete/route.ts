@@ -101,6 +101,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found. Connect wallet first.' }, { status: 404 });
     }
 
+    if (taskId === 'referral' && (!user.referralsCount || user.referralsCount < 1)) {
+      return NextResponse.json(
+        { error: 'Referral quest unlocks only when a friend joins using your summon code.' },
+        { status: 400 }
+      );
+    }
+
     if (existingCompletion || (user.tasksDone && user.tasksDone[taskId])) {
       return NextResponse.json({
         success: true,

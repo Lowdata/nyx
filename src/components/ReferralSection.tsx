@@ -20,10 +20,10 @@ interface ReferralSectionProps {
 }
 
 export function getReferralTier(count: number): { name: string; icon: string; nextTierCount: number } {
-  if (count >= 10) return { name: "Nyx's Chosen", icon: '👑', nextTierCount: 10 };
-  if (count >= 5) return { name: 'Harbinger of Dawn', icon: '☀️', nextTierCount: 10 };
-  if (count >= 3) return { name: 'Circle Weaver', icon: '🕸️', nextTierCount: 5 };
-  if (count >= 1) return { name: 'Dream Scout', icon: '🔭', nextTierCount: 3 };
+  if (count >= 30) return { name: "Nyx's Chosen", icon: '👑', nextTierCount: 30 };
+  if (count >= 15) return { name: 'Harbinger of Dawn', icon: '☀️', nextTierCount: 30 };
+  if (count >= 5) return { name: 'Circle Weaver', icon: '🕸️', nextTierCount: 15 };
+  if (count >= 1) return { name: 'Dream Scout', icon: '🔭', nextTierCount: 5 };
   return { name: 'Dream Seeker', icon: '🌑', nextTierCount: 1 };
 }
 
@@ -104,10 +104,10 @@ export default function ReferralSection({
   };
 
   const tiers = [
-    { name: 'Dream Scout', count: 1, reward: '+50 pts bonus', icon: '🔭' },
-    { name: 'Circle Weaver', count: 3, reward: '+100 pts & FCFS boost', icon: '🕸️' },
-    { name: 'Harbinger', count: 5, reward: '+150 pts & FCFS boost', icon: '☀️' },
-    { name: "Nyx's Chosen", count: 10, reward: '+250 pts & exclusive role', icon: '👑' },
+    { name: 'Dream Scout', count: 1, reward: '+20 pts bonus', icon: '🔭' },
+    { name: 'Circle Weaver', count: 5, reward: '+50 pts & FCFS boost', icon: '🕸️' },
+    { name: 'Harbinger', count: 15, reward: '+100 pts & FCFS priority', icon: '☀️' },
+    { name: "Nyx's Chosen", count: 30, reward: '+500 pts & Guaranteed (GTD) spot', icon: '👑' },
   ];
 
   return (
@@ -132,7 +132,7 @@ export default function ReferralSection({
               <span className="ref-stat-icon">👥</span>
             </div>
             <span className="ref-stat-sub">
-              {referralsCount >= 10 
+              {referralsCount >= 30 
                 ? 'Max tier reached!' 
                 : `${currentTier.nextTierCount - referralsCount} more to reach next tier`}
             </span>
@@ -144,7 +144,7 @@ export default function ReferralSection({
               <span className="ref-stat-number ref-gold">+{referralPoints}</span>
               <span className="ref-stat-icon">✦</span>
             </div>
-            <span className="ref-stat-sub">+10 pts per verified invite (max 10 referrals)</span>
+            <span className="ref-stat-sub">+10 pts per verified invite (max 30 referrals)</span>
           </div>
 
           <div className="ref-stat-card">

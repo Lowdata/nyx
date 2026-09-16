@@ -8,6 +8,7 @@ import {
   recordIpWalletConnection,
   recordTrafficHit,
   getRealIp,
+  isSameIpReferral,
 } from '@/lib/security';
 
 export async function POST(req: NextRequest) {
@@ -32,9 +33,12 @@ export async function POST(req: NextRequest) {
     const normalizedAddress = address.toLowerCase();
 
     // 2. Cloudflare Turnstile bot challenge verification
-    // Skipped in demo mode and when secret key is not configured (local dev)
+    // Skipped in demo mode, when secret key is not configured, or with dev test token in local development
     const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-    if (!isDemo && turnstileSecret) {
+    const isDevTestBypass =
+      process.env.NODE_ENV !== 'production' && turnstileToken === 'DEV_TEST_PASS_TOKEN';
+
+    if (!isDemo && turnstileSecret && !isDevTestBypass) {
       if (!turnstileToken || typeof turnstileToken !== 'string') {
         return NextResponse.json(
           { error: 'Bot verification required. Please try again.' },
@@ -151,7 +155,7 @@ export async function POST(req: NextRequest) {
     if (existingUser) {
       await usersCollection.updateOne(
         { address: normalizedAddress },
-        { $set: { lastAuthAt: Date.now() } }
+        { $set: { lastAuthAt: Date.now(), lastIp: realIp } }
       );
 
       // Record this IP-wallet connection for Sybil tracking and traffic analytics
@@ -194,39 +198,73 @@ export async function POST(req: NextRequest) {
     let appliedRefCode: string | null = null;
 
     // 9. Handle invite code if provided during first connect
+    let referralPending = false;
     if (refCode && typeof refCode === 'string') {
       const cleanRef = refCode.trim().toUpperCase();
       if (/^[A-Z0-9-]{4,16}$/.test(cleanRef) && cleanRef !== refCodeCandidate) {
         const referrer = await usersCollection.findOne({ referralCode: cleanRef });
         if (referrer && referrer.address !== normalizedAddress) {
           appliedRefCode = cleanRef;
-          initialPoints += 10; // Welcome invite bonus (10 pts)
+          initialPoints += 10; // Welcome invite bonus (10 pts) for referee
 
-          const historyEntry = {
-            id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            address: `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}`,
-            timestamp: Date.now(),
-            pts: 10,
-          };
+          // Anti-Sybil Check 1: Same IP / network self-referral detection
+          const sameIp = await isSameIpReferral(realIp, referrer.address, db);
+          // Count referrals already received by this referrer from this IP
+          const sameIpRefCount = await usersCollection.countDocuments({
+            referredByCode: cleanRef,
+            registrationIp: realIp,
+          });
 
-          // Cap referrer points with Math.min
-          const referrerNewPoints = Math.min(2200, (referrer.points || 0) + 10);
-          await usersCollection.updateOne(
-            { referralCode: cleanRef },
-            {
-              $set: { points: referrerNewPoints },
-              $inc: {
-                referralsCount: 1,
-                referralPoints: 10,
-              },
-              $push: {
-                referralHistory: {
-                  $each: [historyEntry],
-                  $slice: -20,
+          // Anti-Sybil Check 2: Distinct wallets connected from this IP
+          const ipWalletCount = await db.collection('ipWallets').countDocuments({ ip: realIp });
+          // Max referral limit: 30
+          const currentRefCount = referrer.referralsCount || 0;
+
+          // OPTION 3 RULE:
+          // If different IP OR first friend from same IP (sameIpRefCount < 1): Award immediately!
+          // If 2nd+ wallet from same IP: Hold in pending (requires linking unique X account to qualify)
+          const allowImmediate = (!sameIp || sameIpRefCount < 1) && currentRefCount < 30;
+
+          if (allowImmediate) {
+            const nextRefCount = currentRefCount + 1;
+            let milestoneBonus = 0;
+            // Calibrated Milestones: 1 friend (+20), 5 friends (+50), 15 friends (+100), 30 friends (+500)
+            if (nextRefCount === 1) milestoneBonus = 20;
+            else if (nextRefCount === 5) milestoneBonus = 50;
+            else if (nextRefCount === 15) milestoneBonus = 100;
+            else if (nextRefCount === 30) milestoneBonus = 500;
+
+            const totalAward = 10 + milestoneBonus;
+            const referrerNewPoints = Math.min(2200, (referrer.points || 0) + totalAward);
+
+            const historyEntry = {
+              id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              address: `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}`,
+              timestamp: Date.now(),
+              pts: totalAward,
+            };
+
+            await usersCollection.updateOne(
+              { referralCode: cleanRef },
+              {
+                $set: { points: referrerNewPoints },
+                $inc: {
+                  referralsCount: 1,
+                  referralPoints: totalAward,
                 },
-              },
-            } as any
-          );
+                $push: {
+                  referralHistory: {
+                    $each: [historyEntry],
+                    $slice: -20,
+                  },
+                },
+              } as any
+            );
+          } else {
+            // Subsequent wallet on same IP: held in pending until verified via unique X account
+            referralPending = true;
+            console.log(`[Anti-Sybil] Same-IP referral for ${cleanRef} from ${realIp} held in pending (sameIp=${sameIp}, sameIpRefCount=${sameIpRefCount})`);
+          }
         }
       }
     }
@@ -252,7 +290,10 @@ export async function POST(req: NextRequest) {
       referralsCount: 0,
       referralPoints: 0,
       referredByCode: appliedRefCode,
+      referralPending: referralPending,
       referralHistory: [],
+      registrationIp: realIp,
+      lastIp: realIp,
       createdAt: Date.now(),
       lastAuthAt: Date.now(),
       isDemo: !!isDemo,

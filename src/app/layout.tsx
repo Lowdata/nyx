@@ -19,20 +19,20 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://nyx.gg'),
-  title: 'Nyx — Wake the God of Sleep',
-  description: 'He wakes when the circle proves itself — one wallet, one post, one dream at a time.',
+  title: 'Nyx: Wake the God of Sleep',
+  description: 'He wakes when the circle proves itself: one wallet, one post, one dream at a time.',
   icons: {
     icon: '/favicon.ico',
   },
   openGraph: {
-    title: 'Nyx — Wake the God of Sleep',
-    description: 'He wakes when the circle proves itself — one wallet, one post, one dream at a time.',
+    title: 'Nyx: Wake the God of Sleep',
+    description: 'He wakes when the circle proves itself: one wallet, one post, one dream at a time.',
     images: [{ url: '/main.webp', width: 1600, height: 900, alt: 'Nyx, the God of Sleep dreaming on clouds beneath the moon' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Nyx — Wake the God of Sleep',
-    description: 'He wakes when the circle proves itself — one wallet, one post, one dream at a time.',
+    title: 'Nyx: Wake the God of Sleep',
+    description: 'He wakes when the circle proves itself: one wallet, one post, one dream at a time.',
     images: ['/main.webp'],
   },
 };

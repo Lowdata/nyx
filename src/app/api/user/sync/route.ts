@@ -127,18 +127,21 @@ export async function POST(req: NextRequest) {
       ptsToAdd += spinPoints;
     }
 
-    // 5. Secure Server-Enforced Tweet Verification
+    // 5. Secure Server-Enforced Tweet Verification & Global Deduplication
     if (tweetUrl && typeof tweetUrl === 'string') {
       const cleanUrl = tweetUrl.trim();
+      let statusId = '';
       try {
         const parsed = new URL(cleanUrl);
         const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
         if (host !== 'twitter.com' && host !== 'x.com') {
           return NextResponse.json({ error: 'Link must be from x.com or twitter.com' }, { status: 400 });
         }
-        if (!/\/[^/]+\/status(es)?\/\d+/i.test(parsed.pathname)) {
+        const match = parsed.pathname.match(/\/(?:status|statuses)\/(\d+)/i);
+        if (!match) {
           return NextResponse.json({ error: 'Link must be a direct tweet status URL' }, { status: 400 });
         }
+        statusId = match[1];
       } catch {
         return NextResponse.json({ error: 'Invalid tweet URL format' }, { status: 400 });
       }
@@ -147,13 +150,34 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Tweet reward has already been claimed' }, { status: 400 });
       }
 
+      // Global circle check: ensure no other user has claimed this exact tweet URL or status ID
+      const existingSubmission = await usersCollection.findOne({
+        $or: [
+          { submittedTweetUrls: cleanUrl },
+          ...(statusId ? [{ submittedTweetIds: statusId }] : []),
+        ],
+      });
+
+      if (existingSubmission) {
+        return NextResponse.json(
+          {
+            error:
+              'Nyx is watching from the shadows... That prophecy has already been claimed in the dream circle. Submit your own genuine dream.',
+          },
+          { status: 400 }
+        );
+      }
+
       updateDoc['tweetClaimed'] = true;
       ptsToAdd += 50;
 
       await usersCollection.updateOne(
         { address: normalizedAddress },
         {
-          $addToSet: { submittedTweetUrls: cleanUrl },
+          $addToSet: {
+            submittedTweetUrls: cleanUrl,
+            ...(statusId ? { submittedTweetIds: statusId } : {}),
+          },
         } as any
       );
     }
@@ -162,7 +186,64 @@ export async function POST(req: NextRequest) {
     if (twitterHandle && typeof twitterHandle === 'string') {
       const cleanHandle = twitterHandle.trim().replace(/^@/, '');
       if (/^[a-zA-Z0-9_]{1,15}$/.test(cleanHandle)) {
+        // Enforce uniqueness: No two wallets can claim the same X handle
+        const duplicateHandle = await usersCollection.findOne({
+          twitterHandle: { $regex: new RegExp(`^${cleanHandle}$`, 'i') },
+          address: { $ne: normalizedAddress },
+        });
+
+        if (duplicateHandle) {
+          return NextResponse.json(
+            { error: 'This X handle is already bound to another dream circle. Each wallet requires a unique account.' },
+            { status: 400 }
+          );
+        }
+
         updateDoc['twitterHandle'] = cleanHandle;
+
+        // If this user was a pending same-IP referral, unlock the referrer reward now!
+        if (user.referralPending && user.referredByCode) {
+          const referrer = await usersCollection.findOne({ referralCode: user.referredByCode });
+          if (referrer && (referrer.referralsCount || 0) < 30) {
+            const currentRefCount = referrer.referralsCount || 0;
+            const nextRefCount = currentRefCount + 1;
+            let milestoneBonus = 0;
+            if (nextRefCount === 1) milestoneBonus = 20;
+            else if (nextRefCount === 5) milestoneBonus = 50;
+            else if (nextRefCount === 15) milestoneBonus = 100;
+            else if (nextRefCount === 30) milestoneBonus = 500;
+
+            const totalAward = 10 + milestoneBonus;
+            const referrerNewPoints = Math.min(2200, (referrer.points || 0) + totalAward);
+
+            const historyEntry = {
+              id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              address: `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}`,
+              timestamp: Date.now(),
+              pts: totalAward,
+            };
+
+            await usersCollection.updateOne(
+              { referralCode: user.referredByCode },
+              {
+                $set: { points: referrerNewPoints },
+                $inc: {
+                  referralsCount: 1,
+                  referralPoints: totalAward,
+                },
+                $push: {
+                  referralHistory: {
+                    $each: [historyEntry],
+                    $slice: -20,
+                  },
+                },
+              } as any
+            );
+            updateDoc['referralPending'] = false;
+            console.log(`[Anti-Sybil] Pending referral for ${user.referredByCode} unlocked via X connect (${cleanHandle})`);
+          }
+        }
+
         if (!user.tasksDone?.connectx) {
           updateDoc['tasksDone.connectx'] = true;
           ptsToAdd += VALID_TASKS['connectx'] || 50;

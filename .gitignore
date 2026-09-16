@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/scripts/sybil-test/
+/scripts/test/
 
 # next.js
 /.next/

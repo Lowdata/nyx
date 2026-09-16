@@ -101,19 +101,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cannot refer yourself.' }, { status: 400 });
     }
 
-    // Same-IP self-referral check — prevents one person creating multiple wallets to farm points
+    // Same-IP self-referral check with Option 3 grace allowance:
     const sameIp = await isSameIpReferral(realIp, referrer.address, db);
-    if (sameIp) {
+    const sameIpRefCount = await usersCollection.countDocuments({
+      referredByCode: cleanCode,
+      registrationIp: realIp,
+    });
+
+    if (sameIp && sameIpRefCount >= 1 && !user.twitterHandle) {
       return NextResponse.json(
-        { error: 'Self-referral from the same network is not permitted.' },
+        { error: 'Multiple referrals detected on this network. Please connect your X account first to qualify this referral.' },
         { status: 400 }
       );
     }
 
-    // Enforce max referral cap (10 referrals per user)
-    if ((referrer.referralsCount || 0) >= 10) {
+    // Enforce max referral cap (30 referrals per user)
+    const currentRefCount = referrer.referralsCount || 0;
+    if (currentRefCount >= 30) {
       return NextResponse.json(
-        { error: 'This referral link has reached its maximum use limit.' },
+        { error: 'This referral link has reached its maximum use limit (30 referrals).' },
         { status: 400 }
       );
     }
@@ -134,22 +140,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Reward referrer atomically with cap
+    // 5. Reward referrer atomically with cap & milestone bonuses
+    const nextRefCount = currentRefCount + 1;
+    let milestoneBonus = 0;
+    if (nextRefCount === 1) milestoneBonus = 20;
+    else if (nextRefCount === 5) milestoneBonus = 50;
+    else if (nextRefCount === 15) milestoneBonus = 100;
+    else if (nextRefCount === 30) milestoneBonus = 500;
+
+    const totalAward = 10 + milestoneBonus;
+    const referrerNewPoints = Math.min(2200, (referrer.points || 0) + totalAward);
+
     const historyEntry = {
       id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       address: `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}`,
       timestamp: Date.now(),
-      pts: 10,
+      pts: totalAward,
     };
 
-    const referrerNewPoints = Math.min(2200, (referrer.points || 0) + 10);
     await usersCollection.updateOne(
       { referralCode: cleanCode },
       {
         $set: { points: referrerNewPoints },
         $inc: {
           referralsCount: 1,
-          referralPoints: 10,
+          referralPoints: totalAward,
         },
         $push: {
           referralHistory: {

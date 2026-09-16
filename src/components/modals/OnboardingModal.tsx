@@ -219,7 +219,7 @@ export default function OnboardingModal({
       <div className="ob-panel">
         {isReprompt && (
           <div className="ob-reprompt-notice" aria-hidden="true">
-            🌙 Nyx awaits — complete setup to enter the dream
+            🌙 Nyx awaits: complete setup to enter the dream
           </div>
         )}
 
@@ -300,7 +300,7 @@ export default function OnboardingModal({
                 Step 2 of 3
               </div>
               {(twitterDone || handleSuccess || twitterHandle) && (
-                <div className="ob-success-check">✓ X Account Linked — +50 pts awarded!</div>
+                <div className="ob-success-check">✓ X Account Linked: +50 pts awarded!</div>
               )}
               <h2 className="ob-heading" id="ob-modal-title">Connect your Twitter</h2>
               <p className="ob-desc">
@@ -377,7 +377,7 @@ export default function OnboardingModal({
             <div className="ob-step-content" key={`s3-${stepKey}`}>
               <div className="ob-kicker">
                 <span className="ob-kicker-dot" />
-                Step 3 of 3 — Optional
+                Step 3 of 3 (Optional)
               </div>
               <h2 className="ob-heading" id="ob-modal-title">Were you summoned?</h2>
               <p className="ob-desc">
@@ -410,7 +410,7 @@ export default function OnboardingModal({
                 ✦ Enter the dream →
               </button>
               <button type="button" className="ob-skip-link" onClick={onClose}>
-                No code — skip &amp; enter
+                No code? Skip &amp; enter
               </button>
             </div>
           )}

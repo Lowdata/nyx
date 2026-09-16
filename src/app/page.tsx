@@ -113,8 +113,8 @@ export default function Home() {
     setSparkleKey((k) => k + 1);
   };
 
-  const handleTweetSubmit = (url: string) => {
-    const res = submitTweet(url);
+  const handleTweetSubmit = async (url: string) => {
+    const res = await submitTweet(url);
     if (res.success) {
       setSparkleKey((k) => k + 1);
     }
@@ -167,6 +167,7 @@ export default function Home() {
           tasksDone={state.tasksDone}
           onCompleteTask={handleTaskComplete}
           referralCode={state.referralCode}
+          referralsCount={state.referralsCount || 0}
           onConnectWallet={handleConnect}
           onConnectTwitter={() => setOnboardOpen(true)}
           onOpenSpin={() => setSpinOpen(true)}

@@ -935,12 +935,12 @@ section {
 
 .zone-track .z-fcfs {
   background: var(--zone-fcfs);
-  width: 22.73%;
+  width: 40.91%;
 }
 
 .zone-track .z-gtd {
   background: var(--zone-gtd);
-  width: 50%;
+  width: 31.82%;
 }
 
 .zone-fill {
@@ -1137,12 +1137,12 @@ section {
 
 .big-track-inner .z-fcfs {
   background: var(--zone-fcfs);
-  width: 22.73%;
+  width: 40.91%;
 }
 
 .big-track-inner .z-gtd {
   background: var(--zone-gtd);
-  width: 50%;
+  width: 31.82%;
 }
 
 .big-fill {

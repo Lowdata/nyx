@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 interface TweetModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmitTweet: (url: string) => { success: boolean; error?: string };
+  onSubmitTweet: (url: string) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
   isClaimed: boolean;
 }
 
@@ -18,6 +18,7 @@ export default function TweetModal({
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,16 +30,23 @@ export default function TweetModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    const res = onSubmitTweet(url);
-    if (res.success) {
-      setSuccess(true);
-      setError('');
-    } else {
-      setError(res.error || 'Submission failed');
+    try {
+      const res = await onSubmitTweet(url);
+      if (res.success) {
+        setSuccess(true);
+        setError('');
+      } else {
+        setError(res.error || 'Submission failed');
+      }
+    } catch {
+      setError('Failed to submit tweet. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -110,15 +118,17 @@ export default function TweetModal({
             type="submit"
             className="btn btn-gold"
             style={{ width: '100%' }}
-            disabled={alreadyClaimed}
+            disabled={alreadyClaimed || loading}
           >
-            {alreadyClaimed
+            {loading
+              ? 'Verifying prophecy...'
+              : alreadyClaimed
               ? 'Tweet submitted'
               : 'Submit tweet (+50 wake points)'}
           </button>
 
           {alreadyClaimed && (
-            <p className="field-success">Thanks — +50 wake points added.</p>
+            <p className="field-success">Prophecy recorded: +50 wake points added.</p>
           )}
         </form>
       </div>

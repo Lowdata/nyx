@@ -12,25 +12,22 @@ declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
+const mongoOptions = {
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 15000, // 15 seconds to allow cold starts and replica set election
+  connectTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+};
 
-if (process.env.NODE_ENV === 'development') {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-    });
-    global._mongoClientPromise = client.connect();
-  }
-  clientPromise = global._mongoClientPromise;
-} else {
-  client = new MongoClient(uri, {
-    maxPoolSize: 20,
-    serverSelectionTimeoutMS: 5000,
+if (!global._mongoClientPromise) {
+  const client = new MongoClient(uri, mongoOptions);
+  global._mongoClientPromise = client.connect().catch((err) => {
+    // Reset cache so subsequent serverless invocations can re-attempt cleanly
+    global._mongoClientPromise = undefined;
+    throw err;
   });
-  clientPromise = client.connect();
 }
+const clientPromise: Promise<MongoClient> = global._mongoClientPromise!;
 
 export const DEFAULT_TASKS = [
   {
@@ -152,7 +149,10 @@ export async function getDb(): Promise<Db> {
     try {
       await db.collection('users').createIndex({ address: 1 }, { unique: true });
       await db.collection('users').createIndex({ referralCode: 1 }, { unique: true });
+      await db.collection('users').createIndex({ twitterHandle: 1 }, { unique: true, sparse: true });
       await db.collection('users').createIndex({ referredByCode: 1 });
+      await db.collection('users').createIndex({ submittedTweetUrls: 1 });
+      await db.collection('users').createIndex({ submittedTweetIds: 1 });
       await db.collection('usedNonces').createIndex({ nonce: 1 }, { unique: true });
       await db.collection('usedNonces').createIndex({ createdAt: 1 }, { expireAfterSeconds: 900 });
       await db.collection('tasks').createIndex({ taskId: 1 }, { unique: true });
