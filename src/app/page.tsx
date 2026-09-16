@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Script from 'next/script';
 import Backdrop from '@/components/Backdrop';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
@@ -50,6 +51,42 @@ export default function Home() {
   const repromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userDisconnectedRef = useRef(false);
   const hasInitialPromptedRef = useRef(false);
+
+  // Global Cloudflare Turnstile token for header/hero direct connect
+  const [globalTurnstileToken, setGlobalTurnstileToken] = useState<string | null>(null);
+  const globalTurnstileRef = useRef<HTMLDivElement>(null);
+  const globalTurnstileId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (!siteKey || !globalTurnstileRef.current || typeof window === 'undefined') return;
+
+    const initTurnstile = () => {
+      if (globalTurnstileId.current || !(window as any).turnstile || !globalTurnstileRef.current) return;
+      try {
+        globalTurnstileId.current = (window as any).turnstile.render(globalTurnstileRef.current, {
+          sitekey: siteKey,
+          theme: 'dark',
+          appearance: 'interaction-only',
+          callback: (token: string) => setGlobalTurnstileToken(token),
+          'expired-callback': () => setGlobalTurnstileToken(null),
+          'error-callback': () => setGlobalTurnstileToken(null),
+        });
+      } catch {}
+    };
+
+    if ((window as any).turnstile) {
+      initTurnstile();
+    } else {
+      const interval = setInterval(() => {
+        if ((window as any).turnstile) {
+          clearInterval(interval);
+          initTurnstile();
+        }
+      }, 250);
+      return () => clearInterval(interval);
+    }
+  }, []);
 
   // Sync spin cooldown countdown
   useEffect(() => {
@@ -154,8 +191,10 @@ export default function Home() {
 
   const handleConnect = async (turnstileToken?: string) => {
     userDisconnectedRef.current = false;
-    // Guard: direct onClick bindings pass a MouseEvent — discard anything that isn't a plain string
-    const safeToken = typeof turnstileToken === 'string' ? turnstileToken : undefined;
+    const safeToken =
+      typeof turnstileToken === 'string'
+        ? turnstileToken
+        : (globalTurnstileToken || undefined);
     const res = await connectAndSignWallet({ turnstileToken: safeToken });
     if (res.success) {
       setSparkleKey((k) => k + 1);
@@ -257,6 +296,16 @@ export default function Home() {
         twitterDone={!!state.tasksDone?.connectx}
         twitterHandle={state.twitterHandle}
         onRedeemCode={handleRedeemReferral}
+      />
+
+      {/* Invisible global Turnstile challenge anchor for direct header/hero connect */}
+      <div
+        ref={globalTurnstileRef}
+        style={{ position: 'fixed', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}
+      />
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        strategy="lazyOnload"
       />
     </>
   );

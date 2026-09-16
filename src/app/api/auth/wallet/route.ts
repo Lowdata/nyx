@@ -32,43 +32,7 @@ export async function POST(req: NextRequest) {
 
     const normalizedAddress = address.toLowerCase();
 
-    // 2. Cloudflare Turnstile bot challenge verification
-    // Skipped in demo mode, when secret key is not configured, or with dev test token in local development
-    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-    const isDevTestBypass =
-      process.env.NODE_ENV !== 'production' && turnstileToken === 'DEV_TEST_PASS_TOKEN';
-
-    if (!isDemo && turnstileSecret && !isDevTestBypass) {
-      if (!turnstileToken || typeof turnstileToken !== 'string') {
-        return NextResponse.json(
-          { error: 'Bot verification required. Please try again.' },
-          { status: 400 }
-        );
-      }
-      try {
-        const cfRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            secret: turnstileSecret,
-            response: turnstileToken,
-            remoteip: getRealIp(req.headers),
-          }),
-        });
-        const cfData = await cfRes.json();
-        if (!cfData.success) {
-          return NextResponse.json(
-            { error: 'Bot verification failed. Please refresh and try again.' },
-            { status: 403 }
-          );
-        }
-      } catch {
-        // If Cloudflare is unreachable, allow through (fail open) to not block legit users
-        console.warn('Turnstile verification unreachable — allowing request through');
-      }
-    }
-
-    // 2. Dead / burn / low-entropy wallet filter
+    // 1. Dead / burn / low-entropy wallet filter
     if (!isLegitWalletAddress(normalizedAddress)) {
       return NextResponse.json(
         { error: 'Suspicious or invalid wallet address. Zero addresses and burn wallets are not permitted.' },
@@ -183,6 +147,42 @@ export async function POST(req: NextRequest) {
           referralHistory: existingUser.referralHistory || [],
         },
       });
+    }
+
+    // 7. Strict Cloudflare Turnstile bot challenge verification on NEW registrations
+    // Prevents automated headless scripts from mass-registering fake referee accounts
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+    const isDevTestBypass =
+      process.env.NODE_ENV !== 'production' && turnstileToken === 'DEV_TEST_PASS_TOKEN';
+
+    if (!isDemo && turnstileSecret && !isDevTestBypass) {
+      if (!turnstileToken || typeof turnstileToken !== 'string') {
+        return NextResponse.json(
+          { error: 'Bot verification required. Please refresh and try again.' },
+          { status: 403 }
+        );
+      }
+      try {
+        const cfRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            secret: turnstileSecret,
+            response: turnstileToken,
+            remoteip: realIp,
+          }),
+        });
+        const cfData = await cfRes.json();
+        if (!cfData.success) {
+          return NextResponse.json(
+            { error: 'Bot verification failed. Please refresh and try again.' },
+            { status: 403 }
+          );
+        }
+      } catch {
+        // If Cloudflare is unreachable, allow through (fail open) to not block legit users
+        console.warn('Turnstile verification unreachable — allowing request through');
+      }
     }
 
     // 8. Generate unique referral code
