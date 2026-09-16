@@ -124,7 +124,7 @@ export default function DreamMeter({ points, pct, stage }: DreamMeterProps) {
               ⚡ Complete Tasks
             </a>
             <a href="#referrals" className="btn btn-ghost">
-              👥 Invite Friends (+100 pts)
+              👥 Invite Friends (+10 pts)
             </a>
             <a href="#rituals" className="btn btn-ghost">
               🌙 Daily Spin
