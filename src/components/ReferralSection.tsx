@@ -104,10 +104,10 @@ export default function ReferralSection({
   };
 
   const tiers = [
-    { name: 'Dream Scout', count: 1, reward: '+150 pts bonus', icon: '🔭' },
-    { name: 'Circle Weaver', count: 3, reward: '+350 pts & FCFS boost', icon: '🕸️' },
-    { name: 'Harbinger', count: 5, reward: '+600 pts & Guaranteed boost', icon: '☀️' },
-    { name: "Nyx's Chosen", count: 10, reward: '+1,200 pts & exclusive role', icon: '👑' },
+    { name: 'Dream Scout', count: 1, reward: '+50 pts bonus', icon: '🔭' },
+    { name: 'Circle Weaver', count: 3, reward: '+100 pts & FCFS boost', icon: '🕸️' },
+    { name: 'Harbinger', count: 5, reward: '+150 pts & FCFS boost', icon: '☀️' },
+    { name: "Nyx's Chosen", count: 10, reward: '+250 pts & exclusive role', icon: '👑' },
   ];
 
   return (
@@ -117,9 +117,9 @@ export default function ReferralSection({
           <p className="kicker">Circle summons</p>
           <h2 id="referral-heading">The Referral Circle</h2>
           <p>
-          Nyx only wakes when the entire circle gathers. Share your summon link
+            Nyx only wakes when the entire circle gathers. Share your summon link
             to earn +10 wake points for every friend who joins, unlock exclusive
-            circle tiers, and push the collective meter closer to the Guaranteed mint.
+            circle tiers, and push your meter closer to the whitelist mint.
           </p>
         </div>
 

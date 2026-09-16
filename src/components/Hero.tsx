@@ -12,6 +12,7 @@ interface HeroProps {
   onCompleteTask: (taskId: string, pts: number) => void;
   referralCode: string | null;
   onConnectWallet?: () => void;
+  onConnectTwitter?: () => void;
   onOpenSpin?: () => void;
   onOpenTweet?: () => void;
 }
@@ -23,6 +24,7 @@ export default function Hero({
   onCompleteTask,
   referralCode,
   onConnectWallet,
+  onConnectTwitter,
   onOpenSpin,
   onOpenTweet,
 }: HeroProps) {
@@ -97,6 +99,7 @@ export default function Hero({
           onCompleteTask={onCompleteTask}
           referralCode={referralCode}
           onConnectWallet={onConnectWallet}
+          onConnectTwitter={onConnectTwitter}
           onOpenSpin={onOpenSpin}
           onOpenTweet={onOpenTweet}
           pct={pct}

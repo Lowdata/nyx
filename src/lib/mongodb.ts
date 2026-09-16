@@ -44,6 +44,16 @@ export const DEFAULT_TASKS = [
     active: true,
   },
   {
+    taskId: 'connectx',
+    title: 'Connect X account',
+    description: 'Link your X handle to awaken your social dream bond',
+    icon: '𝕏',
+    pts: 50,
+    type: 'social' as const,
+    order: 2,
+    active: true,
+  },
+  {
     taskId: 'follow',
     title: 'Follow @enternyx on X',
     description: 'Follow the official Nyx page on X',
@@ -51,50 +61,39 @@ export const DEFAULT_TASKS = [
     pts: 30,
     type: 'twitter_intent' as const,
     intentUrl: 'https://twitter.com/intent/follow?screen_name=enternyx',
-    order: 2,
-    active: true,
-  },
-  {
-    taskId: 'like',
-    title: 'Like the summons',
-    description: 'Like the latest summons from @enternyx on X',
-    icon: '♥',
-    pts: 20,
-    type: 'twitter_intent' as const,
-    intentUrl: 'https://x.com/enternyx',
     order: 3,
     active: true,
   },
   {
-    taskId: 'repost',
-    title: 'Repost the summons',
-    description: 'Spread the Nyx prophecy across X',
-    icon: '↻',
-    pts: 30,
+    taskId: 'like',
+    title: 'Like Tweet',
+    description: 'Like the latest post from @enternyx on X',
+    icon: '♥',
+    pts: 20,
     type: 'twitter_intent' as const,
-    intentUrl: 'https://twitter.com/intent/tweet?text=Nyx%20is%20dreaming...%20Wake%20the%20God%20of%20Sleep%20%F0%9F%8C%99%20%40enternyx%20https%3A%2F%2Fnyx.gg',
+    intentUrl: 'https://x.com/enternyx',
     order: 4,
     active: true,
   },
   {
-    taskId: 'comment',
-    title: 'Comment your dream',
-    description: 'Tell Nyx what you see in the dreaming realm',
-    icon: '💬',
-    pts: 20,
+    taskId: 'repost',
+    title: 'Retweet the Tweet',
+    description: 'Repost the latest summons from @enternyx on X',
+    icon: '↻',
+    pts: 30,
     type: 'twitter_intent' as const,
-    intentUrl: 'https://twitter.com/intent/tweet?text=%40enternyx%20My%20dream%20is%20',
+    intentUrl: 'https://x.com/enternyx',
     order: 5,
     active: true,
   },
   {
-    taskId: 'discord',
-    title: 'Join the dream circle',
-    description: 'Enter the sanctuary of sleepers on Discord',
-    icon: '◈',
-    pts: 40,
-    type: 'social' as const,
-    externalLink: 'https://discord.gg/enternyx',
+    taskId: 'comment',
+    title: 'Tweet about Nyx',
+    description: 'Share your awakening and post about Nyx on X',
+    icon: '💬',
+    pts: 30,
+    type: 'twitter_intent' as const,
+    intentUrl: 'https://twitter.com/intent/tweet?text=Awakening%20with%20%40enternyx%20%F0%9F%8C%99%20Enter%20the%20dream%20circle%20and%20claim%20your%20wake%20points%3A%20https%3A%2F%2Fnyx.town',
     order: 6,
     active: true,
   },
@@ -113,15 +112,31 @@ export const DEFAULT_TASKS = [
 export async function ensureTasksSeeded(db: Db): Promise<void> {
   try {
     const tasksCol = db.collection('tasks');
-    const count = await tasksCol.countDocuments();
-    if (count === 0) {
-      const docsWithTimestamp = DEFAULT_TASKS.map((t) => ({
-        ...t,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      }));
-      await tasksCol.insertMany(docsWithTimestamp);
+    // Upsert each default task so existing DB instances reflect updated titles & tasks
+    for (const t of DEFAULT_TASKS) {
+      await tasksCol.updateOne(
+        { taskId: t.taskId },
+        {
+          $set: {
+            title: t.title,
+            description: t.description,
+            icon: t.icon,
+            pts: t.pts,
+            type: t.type,
+            intentUrl: (t as { intentUrl?: string }).intentUrl,
+            order: t.order,
+            active: true,
+            updatedAt: Date.now(),
+          },
+          $setOnInsert: {
+            createdAt: Date.now(),
+          },
+        },
+        { upsert: true }
+      );
     }
+    // Deactivate discord task if present in database
+    await tasksCol.updateOne({ taskId: 'discord' }, { $set: { active: false } });
   } catch {
     // Graceful fallback if concurrent or network issue
   }

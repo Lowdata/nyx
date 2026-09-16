@@ -5,12 +5,11 @@ import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 const VALID_TASKS: Record<string, number> = {
   connect: 50,
-  connectx: 200,
+  connectx: 50,
   follow: 30,
   like: 20,
   repost: 30,
-  comment: 20,
-  discord: 40,
+  comment: 30,
   referral: 40,
 };
 
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { address, taskId, spinPoints, tweetUrl } = body;
+    const { address, taskId, spinPoints, tweetUrl, twitterHandle } = body;
 
     if (!address || typeof address !== 'string') {
       return NextResponse.json({ error: 'Valid wallet address required' }, { status: 400 });
@@ -159,7 +158,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. Apply Atomic Updates
+    // 6. Secure Server-Enforced Twitter Handle Connection
+    if (twitterHandle && typeof twitterHandle === 'string') {
+      const cleanHandle = twitterHandle.trim().replace(/^@/, '');
+      if (/^[a-zA-Z0-9_]{1,15}$/.test(cleanHandle)) {
+        updateDoc['twitterHandle'] = cleanHandle;
+        if (!user.tasksDone?.connectx) {
+          updateDoc['tasksDone.connectx'] = true;
+          ptsToAdd += VALID_TASKS['connectx'] || 50;
+
+          const userTasksCollection = db.collection('userTasks');
+          try {
+            await userTasksCollection.insertOne({
+              address: normalizedAddress,
+              taskId: 'connectx',
+              pts: VALID_TASKS['connectx'] || 50,
+              completedAt: Date.now(),
+            });
+          } catch {
+            // Already recorded
+          }
+        }
+      }
+    }
+
+    // 7. Apply Atomic Updates
     const currentPoints = user.points || 0;
     const newPoints = Math.min(MAX_TARGET_POINTS, currentPoints + ptsToAdd);
     if (ptsToAdd > 0) {
@@ -208,6 +231,7 @@ export async function GET(req: NextRequest) {
       user: {
         address: user.address,
         referralCode: user.referralCode,
+        twitterHandle: user.twitterHandle || null,
         points: user.points ?? 50,
         tasksDone: user.tasksDone || { connect: true },
         tweetClaimed: !!user.tweetClaimed,

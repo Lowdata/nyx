@@ -26,6 +26,7 @@ export default function Home() {
     connectError,
     completeTask,
     connectAndSignWallet,
+    connectTwitter,
     disconnectWallet,
     redeemReferralCode,
     simulateFriendReferral,
@@ -69,18 +70,11 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [isLoaded, state.walletAddress]);
 
-  // Onboarding: dismiss permanently on wallet connect
-  useEffect(() => {
-    if (state.walletAddress && onboardOpen) {
-      setOnboardOpen(false);
-      if (repromptTimerRef.current) clearTimeout(repromptTimerRef.current);
-    }
-  }, [state.walletAddress, onboardOpen]);
-
   const handleOnboardClose = () => {
     if (state.walletAddress) {
       // Fully authed — dismiss permanently
       setOnboardOpen(false);
+      if (repromptTimerRef.current) clearTimeout(repromptTimerRef.current);
       return;
     }
     // Not yet authed — re-fire in 10 seconds
@@ -174,6 +168,7 @@ export default function Home() {
           onCompleteTask={handleTaskComplete}
           referralCode={state.referralCode}
           onConnectWallet={handleConnect}
+          onConnectTwitter={() => setOnboardOpen(true)}
           onOpenSpin={() => setSpinOpen(true)}
           onOpenTweet={() => setTweetOpen(true)}
         />
@@ -181,7 +176,15 @@ export default function Home() {
         {/* 2. THE BIG DREAM METER (ON TOP) */}
         <DreamMeter points={state.points} pct={pct} stage={stage} />
 
-        {/* 3. Full Referral Circle System */}
+        {/* 3. Extra Rituals (Spin & Summons) - Positioned higher directly under meter */}
+        <Rituals
+          onOpenSpin={() => setSpinOpen(true)}
+          onOpenTweet={() => setTweetOpen(true)}
+          remainingSpinMs={remainingSpinMs}
+          isTweetClaimed={state.tweetClaimed}
+        />
+
+        {/* 4. Full Referral Circle System */}
         <ReferralSection
           walletAddress={state.walletAddress}
           referralCode={state.referralCode}
@@ -194,14 +197,6 @@ export default function Home() {
           onConnectAndSign={handleConnect}
           onRedeemCode={handleRedeemReferral}
           onSimulateReferral={handleSimulateReferral}
-        />
-
-        {/* 4. Extra Rituals (Spin & Summons) */}
-        <Rituals
-          onOpenSpin={() => setSpinOpen(true)}
-          onOpenTweet={() => setTweetOpen(true)}
-          remainingSpinMs={remainingSpinMs}
-          isTweetClaimed={state.tweetClaimed}
         />
 
         {/* 5. The Myth & Cycle */}
@@ -240,8 +235,10 @@ export default function Home() {
         isConnecting={isConnecting}
         connectError={connectError}
         onConnectWallet={handleConnect}
+        onConnectTwitter={connectTwitter}
         onCompleteTask={handleTaskComplete}
-        twitterDone={!!state.tasksDone?.follow}
+        twitterDone={!!state.tasksDone?.connectx}
+        twitterHandle={state.twitterHandle}
         onRedeemCode={handleRedeemReferral}
       />
     </>

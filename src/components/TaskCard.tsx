@@ -8,6 +8,7 @@ interface TaskCardProps {
   onCompleteTask: (taskId: string, pts: number) => void;
   referralCode: string | null;
   onConnectWallet?: () => void;
+  onConnectTwitter?: () => void;
   onOpenSpin?: () => void;
   onOpenTweet?: () => void;
   pct: number;
@@ -19,54 +20,53 @@ const DEFAULT_TASK_ITEMS: TaskItem[] = [
     id: 'connect',
     icon: '🔗',
     title: 'Connect & sign wallet',
-    pts: 150,
+    pts: 50,
     type: 'wallet',
+  },
+  {
+    id: 'connectx',
+    icon: '𝕏',
+    title: 'Connect X account',
+    pts: 50,
+    type: 'social',
   },
   {
     id: 'follow',
     icon: '✕',
     title: 'Follow @enternyx on X',
-    pts: 100,
+    pts: 30,
     type: 'twitter_intent',
     intentUrl: 'https://twitter.com/intent/follow?screen_name=enternyx',
   },
   {
     id: 'like',
     icon: '♥',
-    title: 'Like the summons',
-    pts: 100,
+    title: 'Like Tweet',
+    pts: 20,
     type: 'twitter_intent',
     intentUrl: 'https://x.com/enternyx',
   },
   {
     id: 'repost',
     icon: '↻',
-    title: 'Repost the summons',
-    pts: 100,
+    title: 'Retweet the Tweet',
+    pts: 30,
     type: 'twitter_intent',
-    intentUrl: 'https://twitter.com/intent/tweet?text=Nyx%20is%20dreaming...%20Wake%20the%20God%20of%20Sleep%20%F0%9F%8C%99%20%40enternyx%20https%3A%2F%2Fnyx.gg',
+    intentUrl: 'https://x.com/enternyx',
   },
   {
     id: 'comment',
     icon: '💬',
-    title: 'Comment your dream',
-    pts: 100,
+    title: 'Tweet about Nyx',
+    pts: 30,
     type: 'twitter_intent',
-    intentUrl: 'https://twitter.com/intent/tweet?text=%40enternyx%20My%20dream%20is%20',
-  },
-  {
-    id: 'discord',
-    icon: '◈',
-    title: 'Join the dream circle',
-    pts: 150,
-    type: 'social',
-    externalLink: 'https://discord.gg/enternyx',
+    intentUrl: 'https://twitter.com/intent/tweet?text=Awakening%20with%20%40enternyx%20%F0%9F%8C%99%20Enter%20the%20dream%20circle%20and%20claim%20your%20wake%20points%3A%20https%3A%2F%2Fnyx.town',
   },
   {
     id: 'referral',
     icon: '🎁',
     title: 'Grab your referral link',
-    pts: 100,
+    pts: 40,
     type: 'referral',
   },
 ];
@@ -76,6 +76,7 @@ export default function TaskCard({
   onCompleteTask,
   referralCode,
   onConnectWallet,
+  onConnectTwitter,
   onOpenSpin,
   onOpenTweet,
   pct,
@@ -84,6 +85,7 @@ export default function TaskCard({
   const safeTasksDone = tasksDone || {};
   const [tasks, setTasks] = useState<TaskItem[]>(DEFAULT_TASK_ITEMS);
   const [activeTimers, setActiveTimers] = useState<Record<string, number>>({});
+  const [showInfo, setShowInfo] = useState(false);
   const [, setCopiedLink] = useState<string | null>(
     referralCode ? `https://nyx.gg/?ref=${referralCode}` : null
   );
@@ -113,7 +115,7 @@ export default function TaskCard({
       });
   }, []);
 
-  // 2. 10-Second Auto-Complete Countdown Timer
+  // 2. Auto-Complete Countdown Timer (runs in background without displaying numbers)
   useEffect(() => {
     const hasRunningTimers = Object.values(activeTimers).some((s) => s > 0);
     if (!hasRunningTimers) return;
@@ -134,7 +136,7 @@ export default function TaskCard({
             updated = true;
 
             const matchedTask = tasksRef.current.find((t) => t.id === taskId);
-            const pts = matchedTask ? matchedTask.pts : 100;
+            const pts = matchedTask ? matchedTask.pts : 50;
             completedList.push({ taskId, pts });
           }
         }
@@ -155,7 +157,7 @@ export default function TaskCard({
     return () => clearInterval(interval);
   }, [activeTimers]);
 
-  // 3. User clicks any task: immediate action redirect/copy + start 10s timer
+  // 3. User clicks any task: immediate action redirect/copy + start background verification
   const handleTaskClick = (task: TaskItem) => {
     if (safeTasksDone[task.id]) return;
     if (activeTimers[task.id] && activeTimers[task.id] > 0) return;
@@ -163,7 +165,12 @@ export default function TaskCard({
     // Direct Action Execution
     if (task.id === 'connect') {
       if (onConnectWallet) onConnectWallet();
-      setActiveTimers((prev) => ({ ...prev, [task.id]: 10 }));
+      setActiveTimers((prev) => ({ ...prev, [task.id]: 8 }));
+      return;
+    }
+
+    if (task.id === 'connectx') {
+      if (onConnectTwitter) onConnectTwitter();
       return;
     }
 
@@ -182,7 +189,7 @@ export default function TaskCard({
         // Clipboard fallback
       }
       setCopiedLink(link);
-      setActiveTimers((prev) => ({ ...prev, [task.id]: 10 }));
+      setActiveTimers((prev) => ({ ...prev, [task.id]: 5 }));
       return;
     }
 
@@ -192,8 +199,8 @@ export default function TaskCard({
       window.open(targetLink, '_blank', 'noopener,noreferrer');
     }
 
-    // Start 10-second auto-completion timer
-    setActiveTimers((prev) => ({ ...prev, [task.id]: 10 }));
+    // Start auto-completion timer (user only sees existing circular spinner)
+    setActiveTimers((prev) => ({ ...prev, [task.id]: 6 }));
   };
 
   const doneCount = tasks.filter((t) => !!safeTasksDone[t.id]).length;
@@ -239,13 +246,59 @@ export default function TaskCard({
       {/* 2. TASKS HEADER */}
       <div className="task-card-header">
         <div>
-          <h3>Tasks</h3>
-          <p className="task-card-note">Click any quest to launch. Auto-completes in 10s.</p>
+          <div className="task-title-row">
+            <h3>Tasks</h3>
+            <button
+              type="button"
+              className="task-info-trigger"
+              onClick={() => setShowInfo((s) => !s)}
+              aria-label="Information about spin and tweet submit"
+              title="Click to learn about spin, tweet submit & rituals"
+            >
+              i
+            </button>
+          </div>
+          <p className="task-card-note">Launch quests to awaken Nyx &amp; climb tiers.</p>
         </div>
         <div className="task-count-pill">
           {doneCount} / {tasks.length} Done
         </div>
       </div>
+
+      {/* RITUALS EXPLAINER POPOVER */}
+      {showInfo && (
+        <div className="task-info-popover animate-fade-in" role="dialog" aria-label="Rituals and quests guide">
+          <div className="task-info-popover-header">
+            <h4>Rituals &amp; Quests Guide</h4>
+            <button
+              type="button"
+              className="task-info-close"
+              onClick={() => setShowInfo(false)}
+              aria-label="Close guide"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="task-info-card">
+            <span className="task-info-badge spin">⚡ Spin the Wheel</span>
+            <p>
+              Daily Moon Spin resets every <strong>24 hours</strong>. Land anywhere on the wheel to earn <strong>10 to 50 wake points</strong> added directly to your dream meter.
+            </p>
+          </div>
+          <div className="task-info-card">
+            <span className="task-info-badge tweet">✕ Submit Tweet</span>
+            <p>
+              Share an awakening post about Nyx on X, click &ldquo;Submit tweet&rdquo;, and paste your tweet link to claim <strong>+50 wake points</strong>.
+            </p>
+          </div>
+          <div className="task-info-card">
+            <span className="task-info-badge quest">✦ Awakening Quests</span>
+            <p>
+              Complete the quests below to push the meter into <strong>FCFS (600 pts)</strong> and <strong>Guaranteed (1,100 pts)</strong> mint tiers before Nyx awakes!
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* 3. TASK LIST */}
       <div className="task-list-wrap">
@@ -272,14 +325,6 @@ export default function TaskCard({
                 <div className="task-title">{t.title}</div>
                 <div className="task-pts">+{t.pts} pts</div>
 
-                {/* Status Badges & Explanations */}
-                {isVerifying && (
-                  <div className="task-status-pill">
-                    <span className="task-spinner-dot" />
-                    <span>Auto-completing in {remainingSec}s...</span>
-                  </div>
-                )}
-
                 {t.id === 'referral' && !isVerifying && (
                   <div className="task-extra">
                     {isDone ? (
@@ -292,12 +337,6 @@ export default function TaskCard({
                     ) : (
                       <span>Copies link &amp; unlocks invite rewards</span>
                     )}
-                  </div>
-                )}
-
-                {t.intentUrl && !isVerifying && !isDone && (
-                  <div className="task-extra" style={{ opacity: 0.85 }}>
-                    Opens X intent • completes in 10s
                   </div>
                 )}
               </div>

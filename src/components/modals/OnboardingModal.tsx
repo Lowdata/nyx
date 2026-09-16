@@ -11,14 +11,16 @@ interface OnboardingModalProps {
   isConnecting: boolean;
   connectError: string | null;
   onConnectWallet: (turnstileToken?: string) => Promise<{ success: boolean; error?: string }>;
+  onConnectTwitter?: (handle: string) => Promise<{ success: boolean; error?: string }>;
   onCompleteTask: (taskId: string, pts: number) => void;
   twitterDone: boolean;
+  twitterHandle?: string | null;
   onRedeemCode: (code: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const BADGE_LABELS: Record<number, string> = {
   1: 'Connect wallet',
-  2: 'Follow on X',
+  2: 'Connect Twitter',
   3: 'Invite code',
 };
 
@@ -30,17 +32,19 @@ export default function OnboardingModal({
   isConnecting,
   connectError,
   onConnectWallet,
+  onConnectTwitter,
   onCompleteTask,
   twitterDone,
+  twitterHandle,
   onRedeemCode,
 }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
   const [connectingLocal, setConnectingLocal] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const [twitterOpened, setTwitterOpened] = useState(false);
-  const [countdown, setCountdown] = useState(10);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [handleInput, setHandleInput] = useState('');
+  const [handleConnecting, setHandleConnecting] = useState(false);
+  const [handleSuccess, setHandleSuccess] = useState(false);
 
   const [refCode, setRefCode] = useState('');
   const [refFeedback, setRefFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
@@ -60,20 +64,39 @@ export default function OnboardingModal({
     const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     if (!siteKey || !turnstileContainerRef.current || !(window as any).turnstile) return;
 
-    turnstileWidgetId.current = (window as any).turnstile.render(turnstileContainerRef.current, {
-      sitekey: siteKey,
-      theme: 'dark',
-      appearance: 'interaction-only', // invisible unless needed
-      callback: (token: string) => setTurnstileToken(token),
-      'expired-callback': () => setTurnstileToken(null),
-      'error-callback': () => setTurnstileToken(null),
-    });
+    try {
+      turnstileWidgetId.current = (window as any).turnstile.render(turnstileContainerRef.current, {
+        sitekey: siteKey,
+        theme: 'dark',
+        appearance: 'interaction-only', // invisible unless needed
+        callback: (token: string) => setTurnstileToken(token),
+        'expired-callback': () => setTurnstileToken(null),
+        'error-callback': () => setTurnstileToken(null),
+      });
+    } catch {
+      // Widget error fallback
+    }
+
+    return () => {
+      if (turnstileWidgetId.current && (window as any).turnstile) {
+        try {
+          (window as any).turnstile.remove(turnstileWidgetId.current);
+        } catch {
+          // Cleanup error ignored
+        }
+        turnstileWidgetId.current = null;
+      }
+    };
   }, [isOpen, step, turnstileReady]);
 
-  // Reset widget on close
+  // Clean widget on close
   useEffect(() => {
     if (!isOpen && turnstileWidgetId.current && (window as any).turnstile) {
-      (window as any).turnstile.reset(turnstileWidgetId.current);
+      try {
+        (window as any).turnstile.remove(turnstileWidgetId.current);
+      } catch {
+        // Cleanup error ignored
+      }
       turnstileWidgetId.current = null;
       setTurnstileToken(null);
     }
@@ -89,49 +112,26 @@ export default function OnboardingModal({
 
   // Advance to step 3 when twitter done
   useEffect(() => {
-    if (twitterDone && step === 2 && isOpen) {
-      const t = setTimeout(() => { setStep(3); setStepKey(k => k + 1); }, 600);
+    if ((twitterDone || twitterHandle) && step === 2 && isOpen && !handleConnecting) {
+      const t = setTimeout(() => { setStep(3); setStepKey(k => k + 1); }, 700);
       return () => clearTimeout(t);
     }
-  }, [twitterDone, step, isOpen]);
+  }, [twitterDone, twitterHandle, step, isOpen, handleConnecting]);
 
   // Reset on close
   useEffect(() => {
     if (!isOpen) {
-      setLocalError(null);
-      setTwitterOpened(false);
-      setCountdown(10);
-      setRefCode('');
-      setRefFeedback(null);
-      if (countdownRef.current) clearInterval(countdownRef.current);
+      const timer = setTimeout(() => {
+        setLocalError(null);
+        setHandleConnecting(false);
+        setHandleSuccess(false);
+        setHandleInput('');
+        setRefCode('');
+        setRefFeedback(null);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
-
-  const startCountdown = useCallback(() => {
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    setCountdown(10);
-    countdownRef.current = setInterval(() => {
-      let isFinished = false;
-      setCountdown((c) => {
-        if (c <= 1) {
-          isFinished = true;
-          return 0;
-        }
-        return c - 1;
-      });
-
-      if (isFinished) {
-        if (countdownRef.current) clearInterval(countdownRef.current);
-        setTimeout(() => {
-          onCompleteTask('follow', 30);
-          setStep(3);
-          setStepKey((k) => k + 1);
-        }, 0);
-      }
-    }, 1000);
-  }, [onCompleteTask]);
-
-  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
 
   const handleConnect = async () => {
     setConnectingLocal(true);
@@ -140,18 +140,56 @@ export default function OnboardingModal({
     setConnectingLocal(false);
     if (!res.success) {
       setLocalError(res.error || 'Connection failed. Try again.');
-      // Reset Turnstile so user can retry
+      // Safely reset Turnstile so user can retry
       if (turnstileWidgetId.current && (window as any).turnstile) {
-        (window as any).turnstile.reset(turnstileWidgetId.current);
+        try {
+          (window as any).turnstile.reset(turnstileWidgetId.current);
+        } catch {
+          try { (window as any).turnstile.remove(turnstileWidgetId.current); } catch {}
+          turnstileWidgetId.current = null;
+        }
         setTurnstileToken(null);
       }
     }
   };
 
-  const handleOpenTwitter = () => {
-    window.open('https://twitter.com/intent/follow?screen_name=enternyx', '_blank', 'noopener,noreferrer');
-    setTwitterOpened(true);
-    startCountdown();
+  const handleTwitterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = handleInput.trim().replace(/^@/, '');
+    if (!clean) {
+      setLocalError('Please enter your X / Twitter handle');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]{1,15}$/.test(clean)) {
+      setLocalError('Handle can only contain letters, numbers, and underscores (max 15 chars)');
+      return;
+    }
+
+    setHandleConnecting(true);
+    setLocalError(null);
+
+    if (onConnectTwitter) {
+      const res = await onConnectTwitter(clean);
+      setHandleConnecting(false);
+      if (res.success) {
+        setHandleSuccess(true);
+        onCompleteTask('connectx', 50);
+        setTimeout(() => {
+          setStep(3);
+          setStepKey((k) => k + 1);
+        }, 800);
+      } else {
+        setLocalError(res.error || 'Failed to connect Twitter');
+      }
+    } else {
+      setHandleConnecting(false);
+      setHandleSuccess(true);
+      onCompleteTask('connectx', 50);
+      setTimeout(() => {
+        setStep(3);
+        setStepKey((k) => k + 1);
+      }, 800);
+    }
   };
 
   const handleRedeemRef = async (e: React.FormEvent) => {
@@ -167,7 +205,6 @@ export default function OnboardingModal({
   };
 
   const effectiveStep = walletAddress ? Math.max(step, 2) : step;
-  const dashOffset = twitterOpened ? ((10 - countdown) / 10) * 100 : 0;
 
   if (!isOpen) return null;
 
@@ -255,58 +292,82 @@ export default function OnboardingModal({
             onLoad={() => setTurnstileReady(true)}
           />
 
-          {/* STEP 2 — Follow on X */}
+          {/* STEP 2 — Connect Twitter */}
           {effectiveStep === 2 && (
             <div className="ob-step-content" key={`s2-${stepKey}`}>
               <div className="ob-kicker">
                 <span className="ob-kicker-dot" />
                 Step 2 of 3
               </div>
-              {twitterDone && (
-                <div className="ob-success-check">✓ @enternyx followed — +30 pts awarded!</div>
+              {(twitterDone || handleSuccess || twitterHandle) && (
+                <div className="ob-success-check">✓ X Account Linked — +50 pts awarded!</div>
               )}
-              <h2 className="ob-heading" id="ob-modal-title">Follow the prophecy</h2>
+              <h2 className="ob-heading" id="ob-modal-title">Connect your Twitter</h2>
               <p className="ob-desc">
-                Follow <strong style={{ color: 'var(--cloud)' }}>@enternyx</strong> on X to
-                earn <strong style={{ color: 'var(--gold)' }}>+30 pts</strong>. Click below,
-                follow, and we&apos;ll mark it done automatically in 10 seconds.
+                Enter your <strong style={{ color: 'var(--cloud)' }}>@handle</strong> on X to link
+                your profile and earn <strong style={{ color: 'var(--gold)' }}>+50 wake points</strong>.
               </p>
-              {!twitterDone && (
-                <>
+
+              <form onSubmit={handleTwitterSubmit} className="ob-handle-form">
+                <div className="ob-handle-row">
+                  <span className="ob-handle-at">@</span>
+                  <input
+                    type="text"
+                    className="ob-handle-input"
+                    placeholder="username"
+                    value={handleInput}
+                    onChange={(e) => {
+                      setHandleInput(e.target.value);
+                      setLocalError(null);
+                    }}
+                    maxLength={16}
+                    disabled={handleConnecting || handleSuccess || !!twitterHandle}
+                    autoComplete="off"
+                    aria-label="Your X Twitter handle"
+                  />
                   <button
-                    type="button"
-                    id="ob-twitter-btn"
-                    className="ob-action-btn ob-btn-x"
-                    onClick={handleOpenTwitter}
-                    disabled={twitterOpened}
+                    type="submit"
+                    className="ob-handle-btn"
+                    disabled={handleConnecting || !handleInput.trim() || handleSuccess || !!twitterHandle}
                   >
-                    <span style={{ fontWeight: 900, fontSize: '1.1em' }}>𝕏</span>
-                    {twitterOpened ? 'Opened X — counting down...' : 'Follow @enternyx on X'}
+                    {handleConnecting ? (
+                      <span style={{
+                        width: '12px', height: '12px', borderRadius: '50%',
+                        border: '2px solid rgba(10,8,0,0.3)', borderTopColor: '#0a0800',
+                        animation: 'spin 0.7s linear infinite', display: 'inline-block',
+                      }} />
+                    ) : handleSuccess || twitterHandle ? (
+                      'Linked ✓'
+                    ) : (
+                      'Connect X'
+                    )}
                   </button>
-                  {twitterOpened && (
-                    <div className="ob-countdown-wrap">
-                      <svg className="ob-countdown-ring" viewBox="0 0 36 36">
-                        <circle className="ob-countdown-track" cx="18" cy="18" r="15.9" />
-                        <circle className="ob-countdown-fill" cx="18" cy="18" r="15.9"
-                          style={{ strokeDashoffset: dashOffset }} />
-                      </svg>
-                      <div className="ob-countdown-text">
-                        Auto-completing in <strong>{countdown}s</strong><br />
-                        <span style={{ fontSize: '0.73rem' }}>Already followed? We&apos;ve got you.</span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+                </div>
+              </form>
+
+              {/* Quick follow option */}
+              <div className="ob-follow-link-wrap">
+                <a
+                  href="https://twitter.com/intent/follow?screen_name=enternyx"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ob-follow-sublink"
+                >
+                  <span>𝕏</span> Follow @enternyx on X ↗
+                </a>
+              </div>
+
+              {localError && <p className="ob-error">{localError}</p>}
+
               <button
                 type="button"
                 className="ob-skip-link"
                 onClick={() => {
-                  if (countdownRef.current) clearInterval(countdownRef.current);
-                  setStep(3); setStepKey(k => k + 1);
+                  setStep(3);
+                  setStepKey((k) => k + 1);
                 }}
               >
-                I&apos;ll follow later →
+                {handleSuccess || twitterHandle ? 'Next: Referral code →' : 'I&apos;ll connect later →'}
               </button>
             </div>
           )}

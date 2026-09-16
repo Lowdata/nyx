@@ -20,9 +20,9 @@ export const DEFAULT_STATE: DreamState = {
     like: false,
     repost: false,
     comment: false,
-    discord: false,
     referral: false,
   },
+  twitterHandle: null,
   tweetClaimed: false,
   submittedTweetUrls: [],
   lastSpinAt: null,
@@ -90,6 +90,7 @@ export function useDreamState() {
                 setState((prev) => ({
                   ...prev,
                   walletAddress: u.address,
+                  twitterHandle: u.twitterHandle || null,
                   referralCode: u.referralCode,
                   points: Math.min(TARGET, u.points ?? 0),
                   tasksDone: {
@@ -548,6 +549,55 @@ export function useDreamState() {
     return { success: true, pts: ptsAwarded, address: mockAddress };
   }, [state.walletAddress, sessionToken, saveState]);
 
+  const connectTwitter = useCallback(async (rawHandle: string): Promise<{ success: boolean; error?: string }> => {
+    const clean = rawHandle.trim().replace(/^@/, '');
+    if (!clean) {
+      return { success: false, error: 'Please enter your X / Twitter handle.' };
+    }
+    if (!/^[a-zA-Z0-9_]{1,15}$/.test(clean)) {
+      return { success: false, error: 'Handle can only contain letters, numbers, and underscores (max 15 characters).' };
+    }
+
+    if (state.walletAddress && sessionToken) {
+      try {
+        const res = await fetch('/api/user/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionToken}`,
+          },
+          body: JSON.stringify({
+            address: state.walletAddress,
+            twitterHandle: clean,
+            taskId: 'connectx',
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          return { success: false, error: data.error || 'Failed to link Twitter account' };
+        }
+      } catch {
+        // Fallback to local state save
+      }
+    }
+
+    saveState((prev) => {
+      const alreadyDone = prev.tasksDone.connectx;
+      const ptsToAdd = alreadyDone ? 0 : 50;
+      return {
+        ...prev,
+        twitterHandle: clean,
+        points: Math.min(TARGET, prev.points + ptsToAdd),
+        tasksDone: {
+          ...prev.tasksDone,
+          connectx: true,
+        },
+      };
+    });
+
+    return { success: true };
+  }, [state.walletAddress, sessionToken, saveState]);
+
   const markFcfsCelebrated = useCallback(() => {
     saveState((prev) => ({ ...prev, fcfsCelebrated: true }));
   }, [saveState]);
@@ -565,6 +615,7 @@ export function useDreamState() {
     addPoints,
     completeTask,
     connectAndSignWallet,
+    connectTwitter,
     disconnectWallet,
     redeemReferralCode,
     simulateFriendReferral,

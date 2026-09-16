@@ -36,6 +36,7 @@ export interface DreamState {
   fcfsCelebrated: boolean;
   referralCode: string | null;
   walletAddress: string | null;
+  twitterHandle?: string | null;
   referralsCount: number;
   referralPoints: number;
   referredByCode: string | null;

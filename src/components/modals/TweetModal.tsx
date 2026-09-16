@@ -66,15 +66,28 @@ export default function TweetModal({
           ✕
         </button>
 
-        <h3 id="tweet-modal-title">Share the summons</h3>
+        <h3 id="tweet-modal-title">Tweet about Nyx</h3>
         <p className="desc">
-          Paste the link to your tweet about Nyx. Valid, original links earn 50
-          wake points.
+          Post about Nyx on X, then paste your post link below. Valid status links earn +50 wake points.
         </p>
+
+        {!alreadyClaimed && (
+          <div style={{ marginBottom: '16px' }}>
+            <a
+              href="https://twitter.com/intent/tweet?text=Awakening%20with%20%40enternyx%20%F0%9F%8C%99%20Enter%20the%20dream%20circle%20and%20claim%20your%20wake%20points%3A%20https%3A%2F%2Fnyx.town"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-ghost"
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.88rem', padding: '10px 16px' }}
+            >
+              <span>𝕏</span> Open Pre-made Tweet on X ↗
+            </a>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <label className="field-label" htmlFor="tweet-url">
-            Tweet link
+            Your Tweet status URL
           </label>
           <input
             id="tweet-url"
