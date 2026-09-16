@@ -82,7 +82,7 @@ export default function TweetModal({
         {!alreadyClaimed && (
           <div style={{ marginBottom: '16px' }}>
             <a
-              href="https://twitter.com/intent/tweet?text=Awakening%20with%20%40enternyx%20%F0%9F%8C%99%20Enter%20the%20dream%20circle%20and%20claim%20your%20wake%20points%3A%20https%3A%2F%2Fnyx.town"
+              href="https://twitter.com/intent/tweet?text=Awakening%20with%20%40enternyx%20%F0%9F%8C%99%20Enter%20the%20dream%20circle%20and%20claim%20your%20wake%20points%3A%20https%3A%2F%2Fnyx.town&in_reply_to=2100216839095701608"
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-ghost"
