@@ -281,6 +281,7 @@ export function useDreamState() {
       saveState(() => ({
         ...DEFAULT_STATE,
         walletAddress: user.address,
+        twitterHandle: user.twitterHandle || null,
         referralCode: user.referralCode,
         points: Math.min(TARGET, verifiedPoints),
         tasksDone: {

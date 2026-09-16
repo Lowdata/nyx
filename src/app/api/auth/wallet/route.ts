@@ -169,6 +169,7 @@ export async function POST(req: NextRequest) {
         sessionToken,
         user: {
           address: existingUser.address,
+          twitterHandle: existingUser.twitterHandle || null,
           referralCode: existingUser.referralCode,
           points: existingUser.points ?? 50,
           tasksDone: existingUser.tasksDone || { connect: true },
@@ -312,6 +313,7 @@ export async function POST(req: NextRequest) {
       sessionToken,
       user: {
         address: newUser.address,
+        twitterHandle: newUser.twitterHandle,
         referralCode: newUser.referralCode,
         points: newUser.points,
         tasksDone: newUser.tasksDone,

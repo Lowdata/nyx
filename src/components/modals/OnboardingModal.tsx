@@ -102,26 +102,17 @@ export default function OnboardingModal({
     }
   }, [isOpen]);
 
-  // Advance to step 2 when wallet connects
+  // Strictly reset to step 1 whenever wallet is disconnected or modal is closed
   useEffect(() => {
-    if (walletAddress && step === 1 && isOpen) {
-      const t = setTimeout(() => { setStep(2); setStepKey(k => k + 1); }, 600);
-      return () => clearTimeout(t);
+    if (!walletAddress) {
+      setStep(1);
     }
-  }, [walletAddress, step, isOpen]);
+  }, [walletAddress]);
 
-  // Advance to step 3 when twitter done
-  useEffect(() => {
-    if ((twitterDone || twitterHandle) && step === 2 && isOpen && !handleConnecting) {
-      const t = setTimeout(() => { setStep(3); setStepKey(k => k + 1); }, 700);
-      return () => clearTimeout(t);
-    }
-  }, [twitterDone, twitterHandle, step, isOpen, handleConnecting]);
-
-  // Reset on close
   useEffect(() => {
     if (!isOpen) {
       const timer = setTimeout(() => {
+        setStep(1);
         setLocalError(null);
         setHandleConnecting(false);
         setHandleSuccess(false);
@@ -132,6 +123,24 @@ export default function OnboardingModal({
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // When wallet connects:
+  // If Twitter is ALREADY connected, required setup is done -> close popup immediately!
+  // Otherwise, advance to Step 2 (Connect Twitter)
+  useEffect(() => {
+    if (!isOpen || !walletAddress) return;
+
+    if (twitterDone || twitterHandle) {
+      // Twitter already linked — required onboarding complete, close modal immediately!
+      onClose();
+    } else if (step === 1) {
+      const t = setTimeout(() => {
+        setStep(2);
+        setStepKey((k) => k + 1);
+      }, 500);
+      return () => clearTimeout(t);
+    }
+  }, [isOpen, walletAddress, twitterDone, twitterHandle, step, onClose]);
 
   const handleConnect = async () => {
     setConnectingLocal(true);
@@ -175,8 +184,7 @@ export default function OnboardingModal({
         setHandleSuccess(true);
         onCompleteTask('connectx', 50);
         setTimeout(() => {
-          setStep(3);
-          setStepKey((k) => k + 1);
+          onClose();
         }, 800);
       } else {
         setLocalError(res.error || 'Failed to connect Twitter');
@@ -186,8 +194,7 @@ export default function OnboardingModal({
       setHandleSuccess(true);
       onCompleteTask('connectx', 50);
       setTimeout(() => {
-        setStep(3);
-        setStepKey((k) => k + 1);
+        onClose();
       }, 800);
     }
   };
@@ -204,7 +211,7 @@ export default function OnboardingModal({
     if (res.success) setTimeout(() => onClose(), 1200);
   };
 
-  const effectiveStep = walletAddress ? Math.max(step, 2) : step;
+  const effectiveStep = !walletAddress ? 1 : step;
 
   if (!isOpen) return null;
 
@@ -359,16 +366,26 @@ export default function OnboardingModal({
 
               {localError && <p className="ob-error">{localError}</p>}
 
-              <button
-                type="button"
-                className="ob-skip-link"
-                onClick={() => {
-                  setStep(3);
-                  setStepKey((k) => k + 1);
-                }}
-              >
-                {handleSuccess || twitterHandle ? 'Next: Referral code →' : 'I&apos;ll connect later →'}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '14px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="ob-skip-link"
+                  onClick={onClose}
+                >
+                  {handleSuccess || twitterHandle ? '✦ Enter the dream →' : 'I&apos;ll connect later →'}
+                </button>
+                <button
+                  type="button"
+                  className="ob-skip-link"
+                  style={{ opacity: 0.65, fontSize: '0.78rem' }}
+                  onClick={() => {
+                    setStep(3);
+                    setStepKey((k) => k + 1);
+                  }}
+                >
+                  Have an invite code? →
+                </button>
+              </div>
             </div>
           )}
 

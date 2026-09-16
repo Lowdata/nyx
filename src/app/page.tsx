@@ -48,6 +48,8 @@ export default function Home() {
   const [isReprompt, setIsReprompt] = useState(false);
   const dismissedAtRef = useRef<number | null>(null);
   const repromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userDisconnectedRef = useRef(false);
+  const hasInitialPromptedRef = useRef(false);
 
   // Sync spin cooldown countdown
   useEffect(() => {
@@ -59,10 +61,11 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isLoaded, getRemainingSpinMs]);
 
-  // Onboarding: fire 1.5s after load if wallet not connected
+  // Onboarding: fire 1.5s after load ONCE if wallet not connected (never right after user manually disconnects)
   useEffect(() => {
     if (!isLoaded) return;
-    if (state.walletAddress) return; // Already authed — never show
+    if (state.walletAddress || hasInitialPromptedRef.current || userDisconnectedRef.current) return;
+    hasInitialPromptedRef.current = true;
     const t = setTimeout(() => {
       setIsReprompt(false);
       setOnboardOpen(true);
@@ -71,8 +74,8 @@ export default function Home() {
   }, [isLoaded, state.walletAddress]);
 
   const handleOnboardClose = () => {
-    if (state.walletAddress) {
-      // Fully authed — dismiss permanently
+    if (state.walletAddress || userDisconnectedRef.current) {
+      // Fully authed or user intentionally logged out — dismiss permanently
       setOnboardOpen(false);
       if (repromptTimerRef.current) clearTimeout(repromptTimerRef.current);
       return;
@@ -82,8 +85,10 @@ export default function Home() {
     dismissedAtRef.current = Date.now();
     if (repromptTimerRef.current) clearTimeout(repromptTimerRef.current);
     repromptTimerRef.current = setTimeout(() => {
-      setIsReprompt(true);
-      setOnboardOpen(true);
+      if (!userDisconnectedRef.current) {
+        setIsReprompt(true);
+        setOnboardOpen(true);
+      }
     }, REPROMPT_DELAY_MS);
   };
 
@@ -137,7 +142,18 @@ export default function Home() {
     return res;
   };
 
+  const handleDisconnect = () => {
+    userDisconnectedRef.current = true;
+    if (repromptTimerRef.current) {
+      clearTimeout(repromptTimerRef.current);
+      repromptTimerRef.current = null;
+    }
+    setOnboardOpen(false);
+    disconnectWallet();
+  };
+
   const handleConnect = async (turnstileToken?: string) => {
+    userDisconnectedRef.current = false;
     // Guard: direct onClick bindings pass a MouseEvent — discard anything that isn't a plain string
     const safeToken = typeof turnstileToken === 'string' ? turnstileToken : undefined;
     const res = await connectAndSignWallet({ turnstileToken: safeToken });
@@ -156,7 +172,7 @@ export default function Home() {
         walletAddress={state.walletAddress}
         isConnecting={isConnecting}
         onConnectWallet={handleConnect}
-        onDisconnectWallet={disconnectWallet}
+        onDisconnectWallet={handleDisconnect}
       />
 
       <main>
