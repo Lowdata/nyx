@@ -200,7 +200,7 @@ export default function ReferralSection({
                   </p>
                 )}
                 <span className="ref-connect-sub">
-                  Supports MetaMask, Phantom, Rabby or instant demo connection.
+                  Supports MetaMask, Rabby, Rainbow or instant demo connection.
                 </span>
               </div>
             ) : (

@@ -264,7 +264,7 @@ export default function OnboardingModal({
               </p>
               <div className="ob-wallet-icons">
                 <span className="ob-wallet-icon-chip">🦊 MetaMask</span>
-                <span className="ob-wallet-icon-chip">👻 Phantom</span>
+                <span className="ob-wallet-icon-chip">🌈 Rainbow</span>
                 <span className="ob-wallet-icon-chip">🐰 Rabby</span>
               </div>
               <button

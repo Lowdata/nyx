@@ -14,14 +14,6 @@ export default function Footer() {
           >
             X (@enternyx)
           </a>
-          <a
-            href="https://discord.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Join Nyx on Discord"
-          >
-            Discord
-          </a>
           <a href="#lore">The myth</a>
         </div>
       </div>

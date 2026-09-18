@@ -5,9 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 const STEPS = [
   {
     no: '01',
-    icon: '◎',
+    icon: '⬡',
     title: 'Connect Wallet',
-    body: "Sign with your Solana wallet. One signature, no gas, no friction. This is how the dream knows you're real.",
+    body: "Sign with your EVM wallet. One signature, no gas, no friction. This is how the dream knows you're real.",
     color: 'var(--violet)',
   },
   {

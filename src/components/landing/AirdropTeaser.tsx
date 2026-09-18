@@ -84,7 +84,7 @@ export default function AirdropTeaser() {
             </svg>
           </Link>
           <p className="land-airdrop-footnote">
-            Free to enter. Requires a Solana wallet and proof you showed up.
+            Free to enter. Requires an EVM wallet and proof you showed up.
           </p>
         </div>
       </div>
