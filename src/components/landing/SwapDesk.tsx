@@ -2,18 +2,7 @@
 
 import { useState } from 'react';
 
-const IMAGES = [
-  '/1.png',
-  '/2.png',
-  '/3.png',
-  '/4.png',
-  '/5.png',
-  '/6.png',
-  '/7.png',
-  '/8.png',
-  '/9.png',
-  '/10.png',
-];
+const IMAGES = Array.from({ length: 30 }, (_, i) => `/${i + 1}.png`);
 
 export default function SwapDesk() {
   const [currentIdx, setCurrentIdx] = useState(0);
