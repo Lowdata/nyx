@@ -9,7 +9,7 @@ interface OnboardingModalProps {
   walletAddress: string | null;
   isConnecting: boolean;
   connectError: string | null;
-  onConnectWallet: (turnstileToken?: string) => Promise<{ success: boolean; error?: string }>;
+  onConnectWallet: () => Promise<{ success: boolean; error?: string }>;
   onConnectTwitter?: (handle: string) => Promise<{ success: boolean; error?: string }>;
   onCompleteTask: (taskId: string, pts: number) => void;
   twitterDone: boolean;

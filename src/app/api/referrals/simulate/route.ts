@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { verifySessionToken, extractBearerToken } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 const MAX_TARGET_POINTS = 2200;
 
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
       address: mockAddress,
     });
   } catch (error) {
-    console.error('Simulate referral error:', error);
+    logger.error('Referrals:simulate', 'Simulate referral error', error);
     return NextResponse.json({ error: 'Failed to simulate referral' }, { status: 500 });
   }
 }

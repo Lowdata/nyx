@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
       message: `Valid code from dreamer ${referrer.address.slice(0, 6)}...${referrer.address.slice(-4)}`,
     });
   } catch (err) {
-    console.error('Verify referral error:', err);
+    logger.error('Referrals:verify', 'Verify referral error', err);
     return NextResponse.json({ valid: false, error: 'Failed to verify invite code' }, { status: 500 });
   }
 }

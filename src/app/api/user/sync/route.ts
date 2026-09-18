@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { verifySessionToken, extractBearerToken } from '@/lib/auth';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { logger } from '@/lib/logger';
 
 const VALID_TASKS: Record<string, number> = {
   connect: 50,
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
 
       updateDoc[`tasksDone.${taskId}`] = true;
       ptsToAdd += VALID_TASKS[taskId];
-      console.log(`[API /user/sync] Saved to DB: task "${taskId}" for ${normalizedAddress} (+${VALID_TASKS[taskId]} pts)`);
+      logger.info('DB:sync', `Saved task to DB: "${taskId}" (+${VALID_TASKS[taskId]} pts)`, { address: normalizedAddress, taskId });
 
       // Record in userTasks collection
       const userTasksCollection = db.collection('userTasks');
@@ -241,7 +242,10 @@ export async function POST(req: NextRequest) {
               } as any
             );
             updateDoc['referralPending'] = false;
-            console.log(`[Anti-Sybil] Pending referral for ${user.referredByCode} unlocked via X connect (${cleanHandle})`);
+            logger.info('Anti-Sybil', `Pending referral unlocked via X connect (${cleanHandle})`, {
+              referrerCode: user.referredByCode,
+              twitterHandle: cleanHandle,
+            });
           }
         }
 
@@ -281,7 +285,7 @@ export async function POST(req: NextRequest) {
     const updatedUser = await usersCollection.findOne({ address: normalizedAddress });
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
-    console.error('User sync error:', error);
+    logger.error('User:sync', 'User sync error', error);
     return NextResponse.json({ error: 'Failed to sync user state' }, { status: 500 });
   }
 }
@@ -327,7 +331,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('GET /api/user/sync error:', error);
+    logger.error('User:sync', 'GET /api/user/sync error', error);
     return NextResponse.json({ error: 'Failed to retrieve user' }, { status: 500 });
   }
 }

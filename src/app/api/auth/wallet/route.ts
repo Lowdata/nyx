@@ -10,6 +10,7 @@ import {
   getRealIp,
   isSameIpReferral,
 } from '@/lib/security';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +18,7 @@ export async function POST(req: NextRequest) {
     const clientIp = getClientIp(req.headers);
     const rateCheck = checkRateLimit(`auth:${clientIp}`, 20, 60_000);
     if (!rateCheck.success) {
+      logger.warn('Auth:wallet', 'Rate limit exceeded for IP', { clientIp });
       return NextResponse.json(
         { error: 'Too many authentication attempts. Please wait a moment.' },
         { status: 429 }
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { address, signature, message, refCode, isDemo, turnstileToken } = body;
+    const { address, signature, message, refCode, isDemo } = body;
 
     if (!address || typeof address !== 'string') {
       return NextResponse.json({ error: 'Valid wallet address is required' }, { status: 400 });
@@ -128,6 +130,8 @@ export async function POST(req: NextRequest) {
         recordTrafficHit(req.headers, '/api/auth/wallet', db),
       ]);
 
+      logger.info('Auth:wallet', `Authenticated existing wallet`, { address: normalizedAddress, ip: realIp });
+
       return NextResponse.json({
         success: true,
         sessionToken,
@@ -228,7 +232,12 @@ export async function POST(req: NextRequest) {
           } else {
             // Subsequent wallet on same IP: held in pending until verified via unique X account
             referralPending = true;
-            console.log(`[Anti-Sybil] Same-IP referral for ${cleanRef} from ${realIp} held in pending (sameIp=${sameIp}, sameIpRefCount=${sameIpRefCount})`);
+            logger.info('Anti-Sybil', `Same-IP referral held in pending`, {
+              referrerCode: cleanRef,
+              ip: realIp,
+              sameIp,
+              sameIpRefCount,
+            });
           }
         }
       }
@@ -266,6 +275,13 @@ export async function POST(req: NextRequest) {
 
     await usersCollection.insertOne(newUser);
 
+    logger.info('DB:users', `Registered new wallet in MongoDB`, {
+      address: normalizedAddress,
+      referralCode: refCodeCandidate,
+      referredBy: appliedRefCode,
+      ip: realIp,
+    });
+
     // Record IP-wallet connection for Sybil tracking and traffic log
     await Promise.allSettled([
       recordIpWalletConnection(realIp, normalizedAddress, db),
@@ -292,7 +308,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Wallet auth error:', error);
+    logger.error('Auth:wallet', 'Wallet auth error', error);
     return NextResponse.json({ error: 'Internal server error during authentication' }, { status: 500 });
   }
 }

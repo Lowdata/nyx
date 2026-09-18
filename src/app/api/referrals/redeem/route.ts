@@ -3,6 +3,7 @@ import { getDb } from '@/lib/mongodb';
 import { verifySessionToken, extractBearerToken } from '@/lib/auth';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 import { checkPersistentBlock, isSameIpReferral, recordTrafficHit, getRealIp } from '@/lib/security';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -175,12 +176,18 @@ export async function POST(req: NextRequest) {
       } as any
     );
 
+    logger.info('Referrals:redeem', `Redeemed invite code "${cleanCode}" for ${normalizedAddress} (+10 pts)`, {
+      referee: normalizedAddress,
+      referrerCode: cleanCode,
+      referrerAward: totalAward,
+    });
+
     return NextResponse.json({
       success: true,
       message: `Welcome bonus unlocked! +10 wake points added from ${cleanCode}.`,
     });
   } catch (error) {
-    console.error('Redeem error:', error);
+    logger.error('Referrals:redeem', 'Redeem error', error);
     return NextResponse.json({ error: 'Failed to process invite code' }, { status: 500 });
   }
 }

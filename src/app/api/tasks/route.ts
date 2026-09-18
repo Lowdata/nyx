@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, DEFAULT_TASKS, ensureTasksSeeded } from '@/lib/mongodb';
 import { extractBearerToken, verifySessionToken } from '@/lib/auth';
 import { recordTrafficHit } from '@/lib/security';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
     try {
       db = await getDb();
     } catch (dbErr) {
-      console.warn('DB connection error in GET /api/tasks, returning fallback default tasks:', dbErr);
+      logger.warn('DB:tasks', 'DB connection error in GET /api/tasks, returning fallback default tasks', { error: (dbErr as Error).message });
       return NextResponse.json({
         success: true,
         tasks: DEFAULT_TASKS.map((t) => ({
@@ -89,7 +90,7 @@ export async function GET(req: NextRequest) {
       tasks: formattedTasks,
     });
   } catch (error) {
-    console.error('Error in GET /api/tasks:', error);
+    logger.error('Tasks:list', 'Error in GET /api/tasks', error);
     return NextResponse.json(
       {
         success: true,

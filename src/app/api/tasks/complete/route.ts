@@ -3,6 +3,7 @@ import { getDb, DEFAULT_TASKS, ensureTasksSeeded } from '@/lib/mongodb';
 import { extractBearerToken, verifySessionToken } from '@/lib/auth';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 import { checkPersistentBlock, recordTrafficHit, getRealIp } from '@/lib/security';
+import { logger } from '@/lib/logger';
 
 const MAX_TARGET_POINTS = 2200;
 
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedAddress = address.toLowerCase();
-    console.log(`[API /tasks/complete] Received task "${taskId}" for wallet ${normalizedAddress}`);
+    logger.info('Tasks:complete', `Received task "${taskId}" for wallet`, { address: normalizedAddress, taskId });
 
     // 3. Ensure Session Matches Address
     if (session.address !== normalizedAddress) {
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (existingCompletion || (user.tasksDone && user.tasksDone[taskId])) {
-      console.log(`[API /tasks/complete] Task "${taskId}" was already completed for ${normalizedAddress}`);
+      logger.info('Tasks:complete', `Task "${taskId}" was already completed`, { address: normalizedAddress, taskId });
       return NextResponse.json({
         success: true,
         message: 'Task already completed',
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
       await userTasksCol.insertOne(completionRecord);
     } catch {
       // Compound index collision indicates concurrent claim
-      console.log(`[API /tasks/complete] Task "${taskId}" concurrent claim collision for ${normalizedAddress}`);
+      logger.info('Tasks:complete', `Task "${taskId}" concurrent claim collision`, { address: normalizedAddress, taskId });
       return NextResponse.json({
         success: true,
         message: 'Task already completed',
@@ -157,7 +158,12 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    console.log(`[API /tasks/complete] Saved to DB (${db.databaseName}): task "${taskId}" for ${normalizedAddress} (+${pointsToAward} pts, total: ${newPoints} pts)`);
+    logger.info('DB:tasks', `Task "${taskId}" recorded in MongoDB (${db.databaseName})`, {
+      address: normalizedAddress,
+      taskId,
+      ptsAwarded: pointsToAward,
+      newPoints,
+    });
 
     const updatedUser = await usersCol.findOne({ address: normalizedAddress });
 
@@ -168,7 +174,7 @@ export async function POST(req: NextRequest) {
       user: updatedUser,
     });
   } catch (error) {
-    console.error('[API /tasks/complete] Error recording task completion:', error);
+    logger.error('Tasks:complete', 'Error recording task completion', error);
     return NextResponse.json({ error: 'Failed to record task completion' }, { status: 500 });
   }
 }
