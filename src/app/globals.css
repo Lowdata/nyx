@@ -157,15 +157,19 @@ section {
   left: 0;
   right: 0;
   z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 32px;
-  background: rgba(7, 9, 18, 0.96);
+  padding: 12px 0;
+  background: rgba(7, 9, 18, 0.94);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(238, 236, 247, 0.08);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .nav-brand {
@@ -3797,8 +3801,32 @@ footer {
   .meter-points-box {
     align-items: flex-start;
   }
+  .nav {
+    padding: 10px 0;
+  }
+  .nav-inner {
+    padding: 0 16px;
+  }
+  .nav-brand img {
+    height: 30px !important;
+  }
   .nav-links {
     display: none;
+  }
+  .nav-leaderboard-wrapper {
+    display: none;
+  }
+  .nav-twitter-btn {
+    width: 34px;
+    height: 34px;
+  }
+  .nav-wallet-btn, .nav-connect-btn {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    gap: 6px;
+  }
+  .nav-hamburger {
+    display: flex;
   }
 }
 
@@ -3912,12 +3940,28 @@ footer {
   color: var(--cloud-dim); text-decoration: none; font-size: 1.1rem;
   padding: 13px 0; border-bottom: 1px solid var(--line);
 }
+.land-nav-mobile-close {
+  position: absolute; top: 20px; right: 20px;
+  background: none; border: none; cursor: pointer;
+  color: var(--cloud-dim); font-size: 1.3rem; line-height: 1;
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; transition: color 0.2s, background 0.2s;
+}
+.land-nav-mobile-close:hover { color: var(--cloud); background: rgba(255,255,255,0.06); }
 @media (max-width: 768px) {
-  .land-nav { padding: 12px 0; }
-  .land-nav-brand img { height: 32px !important; }
+  .land-nav { padding: 10px 0; }
+  .land-nav-inner { padding: 0 16px; }
+  .land-nav-brand img { height: 30px !important; }
   .land-nav-links { display: none; }
-  .land-nav-hamburger { display: flex; }
-  .land-nav-cta { padding: 8px 14px; font-size: 0.8rem; }
+  .land-nav-actions { gap: 8px; }
+  .land-nav-icon-btn { width: 34px; height: 34px; }
+  .land-nav-cta { padding: 7px 12px; font-size: 0.76rem; gap: 4px; }
+  .land-nav-hamburger { display: flex; width: 32px; height: 32px; }
+}
+@media (max-width: 400px) {
+  .land-nav-cta svg { display: none; }
+  .land-nav-cta { padding: 6px 10px; font-size: 0.72rem; }
+  .land-nav-brand img { height: 26px !important; }
 }
 
 /* ---------- LANDING HERO ---------- */
@@ -3926,6 +3970,10 @@ footer {
   display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
 }
 .land-hero-bg { position: absolute; inset: -10%; z-index: 0; will-change: transform; }
+.land-hero-img {
+  object-fit: cover;
+  object-position: center top;
+}
 .land-hero-scrim { position: absolute; z-index: 1; pointer-events: none; }
 .land-hero-scrim--bottom {
   inset: 0;
@@ -3985,10 +4033,10 @@ footer {
 .land-cta-btn {
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--gold); color: var(--ink);
-  font-weight: 700; font-size: 1rem; padding: 14px 28px; border-radius: 999px;
+  font-weight: 700; font-size: 0.92rem; padding: 11px 24px; border-radius: 999px;
   text-decoration: none; position: relative; overflow: hidden;
   transition: transform 0.22s ease, box-shadow 0.22s ease;
-  box-shadow: 0 0 28px rgba(240,217,160,0.3);
+  box-shadow: 0 0 24px rgba(240,217,160,0.28);
 }
 .land-cta-btn::before {
   content: ''; position: absolute; inset: 0;
@@ -3996,11 +4044,11 @@ footer {
   pointer-events: none;
 }
 .land-cta-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 36px rgba(240,217,160,0.5); }
-.land-cta-btn--large { font-size: 1.08rem; padding: 16px 34px; }
+.land-cta-btn--large { font-size: 0.95rem; padding: 12px 26px; }
 .land-cta-btn-text { position: relative; z-index: 1; }
 .land-ghost-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  color: var(--cloud-dim); font-size: 0.95rem; font-weight: 600;
+  color: var(--cloud-dim); font-size: 0.92rem; font-weight: 600;
   text-decoration: none; border-bottom: 1px solid rgba(183,182,207,0.4); padding-bottom: 2px;
   transition: color 0.2s ease, border-color 0.2s ease;
 }
@@ -4031,42 +4079,59 @@ footer {
   50% { transform: translateX(-50%) translateY(6px); }
 }
 @media (max-width: 768px) {
-  .land-hero-content { padding-top: 100px; padding-bottom: 80px; }
+  .land-hero {
+    min-height: 100svh;
+    justify-content: flex-end;
+  }
+  .land-hero-bg {
+    inset: 0;
+  }
+  .land-hero-img {
+    object-position: 72% 35% !important;
+  }
+  .land-hero-content {
+    padding-top: 84px;
+    padding-bottom: 44px;
+  }
   .land-hero-title {
-    font-size: clamp(2.2rem, 8.5vw, 3.8rem);
+    font-size: clamp(2.1rem, 7.5vw, 3.2rem);
     line-height: 1.05;
     max-width: 100%;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
   }
   .land-hero-sub {
-    font-size: 0.98rem;
-    line-height: 1.6;
+    font-size: 0.92rem;
+    line-height: 1.55;
     max-width: 100%;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
   .land-hero-actions {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
     gap: 12px;
     width: 100%;
-    max-width: 320px;
+    max-width: 100%;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
   }
   .land-cta-btn {
-    width: 100%;
+    width: auto;
     justify-content: center;
-    padding: 13px 20px;
+    padding: 10px 20px;
+    font-size: 0.85rem;
   }
   .land-ghost-btn {
     justify-content: center;
+    font-size: 0.85rem;
     padding: 6px 0;
   }
   .land-hero-stats {
-    gap: 8px;
-    margin-top: 10px;
+    gap: 6px;
+    margin-top: 6px;
   }
   .land-stat-pill {
-    font-size: 0.74rem;
-    padding: 6px 11px;
+    font-size: 0.72rem;
+    padding: 5px 10px;
   }
   .land-scroll-hint { display: none; }
 }
@@ -4165,11 +4230,11 @@ footer {
 }
 
 /* ---------- HOW IT WORKS ---------- */
-.land-process { padding: 110px 0; background: linear-gradient(180deg, var(--night-1) 0%, var(--void) 100%); }
-.land-process-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.land-process { padding: 90px 0; background: linear-gradient(180deg, var(--night-1) 0%, var(--void) 100%); }
+.land-process-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .land-entry {
-  background: #f2ead4; color: #2b2313; padding: 26px 22px 28px; position: relative;
-  box-shadow: 0 18px 40px -16px rgba(0,0,0,0.55); border-radius: 2px; overflow: hidden;
+  background: #f2ead4; color: #2b2313; padding: 18px 16px 20px; position: relative;
+  box-shadow: 0 12px 28px -12px rgba(0,0,0,0.5); border-radius: 2px; overflow: hidden;
   transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease;
 }
 .land-entry--visible { opacity: 1 !important; transform: translateY(0) rotate(var(--tilt, 0deg)) !important; }
@@ -4177,23 +4242,23 @@ footer {
 .land-entry:nth-child(2) { --tilt: 1.1deg; }
 .land-entry:nth-child(3) { --tilt: -0.8deg; }
 .land-entry:nth-child(4) { --tilt: 1.4deg; }
-.land-entry:hover { transform: translateY(-4px) rotate(0deg) scale(1.02) !important; box-shadow: 0 28px 60px -16px rgba(0,0,0,0.65); z-index: 2; }
-.land-entry-no { font-size: 0.7rem; font-weight: 700; color: #8a7a4a; letter-spacing: 0.04em; margin-bottom: 12px; }
-.land-entry-icon { font-size: 1.5rem; line-height: 1; margin-bottom: 12px; display: block; }
-.land-entry-title { font-family: var(--font-fredoka), sans-serif; font-size: 1.15rem; font-weight: 600; margin: 0 0 8px; color: #1a1508; line-height: 1.2; }
-.land-entry-body { font-size: 0.88rem; line-height: 1.6; color: #4a4128; margin: 0; position: relative; z-index: 1; }
-.land-entry-lines { position: absolute; bottom: 0; left: 0; right: 0; padding: 10px 22px; pointer-events: none; }
-.land-entry-lines span { display: block; height: 1px; background: rgba(139,122,74,0.2); margin-bottom: 12px; }
+.land-entry:hover { transform: translateY(-4px) rotate(0deg) scale(1.02) !important; box-shadow: 0 24px 50px -14px rgba(0,0,0,0.65); z-index: 2; }
+.land-entry-no { font-size: 0.65rem; font-weight: 700; color: #8a7a4a; letter-spacing: 0.04em; margin-bottom: 8px; }
+.land-entry-icon { font-size: 1.25rem; line-height: 1; margin-bottom: 8px; display: block; }
+.land-entry-title { font-family: var(--font-fredoka), sans-serif; font-size: 1.02rem; font-weight: 600; margin: 0 0 6px; color: #1a1508; line-height: 1.2; }
+.land-entry-body { font-size: 0.82rem; line-height: 1.5; color: #4a4128; margin: 0; position: relative; z-index: 1; }
+.land-entry-lines { position: absolute; bottom: 0; left: 0; right: 0; padding: 6px 16px; pointer-events: none; }
+.land-entry-lines span { display: block; height: 1px; background: rgba(139,122,74,0.18); margin-bottom: 8px; }
 @media (max-width: 900px) { .land-process-grid { grid-template-columns: repeat(2,1fr); } }
 @media (max-width: 560px) { .land-process-grid { grid-template-columns: 1fr; } }
 
 /* ---------- AIRDROP ---------- */
-.land-airdrop { padding: 110px 0; background: var(--night-1); }
-.land-airdrop-header { text-align: center; margin-bottom: 56px; }
+.land-airdrop { padding: 90px 0; background: var(--night-1); }
+.land-airdrop-header { text-align: center; margin-bottom: 44px; }
 .land-ticker {
-  display: inline-flex; align-items: center; gap: 10px;
+  display: inline-flex; align-items: center; gap: 8px;
   background: var(--cloud); color: var(--ink);
-  font-size: 0.8rem; font-weight: 700; padding: 7px 16px;
+  font-size: 0.76rem; font-weight: 700; padding: 6px 14px;
   border-radius: 999px; letter-spacing: 0.03em;
 }
 .land-ticker-dot {
@@ -4205,13 +4270,13 @@ footer {
   background: #3d2f22;
   background-image: radial-gradient(circle at 20% 30%, rgba(0,0,0,0.15) 0, transparent 3px), radial-gradient(circle at 70% 60%, rgba(0,0,0,0.12) 0, transparent 3px);
   background-size: 42px 42px, 58px 58px;
-  border-radius: 8px; padding: 48px; border: 10px solid #2a2018;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.5); margin-bottom: 56px;
+  border-radius: 8px; padding: 32px 24px; border: 8px solid #2a2018;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5); margin-bottom: 40px;
 }
-.land-cork-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px 20px; }
+.land-cork-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 14px; }
 .land-note {
-  background: #f2ead4; color: #2b2313; padding: 20px 18px 24px; position: relative;
-  box-shadow: 0 14px 28px -12px rgba(0,0,0,0.6); font-size: 1.0rem; line-height: 1.5; border-radius: 1px;
+  background: #f2ead4; color: #2b2313; padding: 14px 14px 16px; position: relative;
+  box-shadow: 0 10px 20px -8px rgba(0,0,0,0.55); font-size: 0.86rem; line-height: 1.45; border-radius: 1px;
   transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.25s ease;
 }
 .land-note--visible { opacity: 1 !important; transform: translateY(0) rotate(var(--note-r, 0deg)) !important; }
@@ -4221,23 +4286,23 @@ footer {
 .land-note:nth-child(4) { --note-r: 2deg; }
 .land-note:nth-child(5) { --note-r: -1.8deg; }
 .land-note:nth-child(6) { --note-r: 1.2deg; }
-.land-note:hover { transform: rotate(0deg) scale(1.03) !important; z-index: 2; position: relative; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.7); }
+.land-note:hover { transform: rotate(0deg) scale(1.03) !important; z-index: 2; position: relative; box-shadow: 0 16px 36px -8px rgba(0,0,0,0.7); }
 .land-note-pin {
-  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
-  width: 16px; height: 16px; border-radius: 50%;
+  position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+  width: 13px; height: 13px; border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #e8c165, #9c6a1f 70%);
-  box-shadow: 0 3px 6px rgba(0,0,0,0.45);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.45);
 }
-.land-note-tag { display: block; font-size: 0.7rem; font-weight: 700; color: #8a7a4a; margin-top: 12px; letter-spacing: 0.03em; }
+.land-note-tag { display: block; font-size: 0.65rem; font-weight: 700; color: #8a7a4a; margin-top: 8px; letter-spacing: 0.03em; }
 .land-airdrop-cta { text-align: center; }
-.land-airdrop-footnote { font-size: 0.85rem; color: var(--cloud-dim); margin-top: 16px; opacity: 0.7; }
+.land-airdrop-footnote { font-size: 0.82rem; color: var(--cloud-dim); margin-top: 14px; opacity: 0.7; }
 @media (max-width: 860px) {
   .land-cork-grid { grid-template-columns: repeat(2,1fr); }
-  .land-cork { padding: 32px 24px; }
+  .land-cork { padding: 24px 18px; }
 }
 @media (max-width: 560px) {
   .land-cork-grid { grid-template-columns: 1fr; }
-  .land-cork { padding: 24px 16px; border-width: 6px; }
+  .land-cork { padding: 18px 12px; border-width: 5px; }
 }
 
 /* ---------- SWAP DESK & REROLL RANDOMIZER ---------- */
@@ -4503,36 +4568,75 @@ footer {
 
   /* How It Works (Ritual) */
   .land-process {
-    padding: 70px 0;
+    padding: 50px 0;
   }
   .land-process-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 10px;
   }
   .land-entry {
     --tilt: 0deg !important;
-    padding: 20px 18px;
+    padding: 12px 14px 14px;
     transform: none !important;
+  }
+  .land-entry-no {
+    font-size: 0.6rem;
+    margin-bottom: 3px;
+  }
+  .land-entry-icon {
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+  }
+  .land-entry-title {
+    font-size: 0.92rem;
+    margin-bottom: 3px;
+  }
+  .land-entry-body {
+    font-size: 0.76rem;
+    line-height: 1.4;
+  }
+  .land-entry-lines {
+    padding: 4px 12px;
+  }
+  .land-entry-lines span {
+    margin-bottom: 6px;
   }
 
   /* Airdrop / Cork Board */
   .land-airdrop {
-    padding: 70px 0;
+    padding: 50px 0;
   }
   .land-cork {
-    padding: 20px 12px;
-    border-width: 6px;
-    margin-bottom: 36px;
+    padding: 14px 10px;
+    border-width: 4px;
+    border-radius: 6px;
+    margin-bottom: 24px;
   }
   .land-cork-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 9px;
   }
   .land-note {
     --note-r: 0deg !important;
-    padding: 16px 14px;
-    font-size: 1.05rem;
+    padding: 10px 12px 12px;
+    font-size: 0.8rem;
+    line-height: 1.4;
     transform: none !important;
+  }
+  .land-note-pin {
+    width: 10px;
+    height: 10px;
+    top: -5px;
+  }
+  .land-note-tag {
+    font-size: 0.6rem;
+    margin-top: 4px;
+  }
+  .land-airdrop-cta .land-cta-btn--large {
+    padding: 10px 22px;
+    font-size: 0.85rem;
+    width: auto;
+    display: inline-flex;
   }
 
   /* Footer */

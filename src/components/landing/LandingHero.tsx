@@ -49,7 +49,7 @@ export default function LandingHero() {
           fill
           priority
           sizes="100vw"
-          style={{ objectFit: 'cover', objectPosition: 'center top' }}
+          className="land-hero-img"
         />
       </div>
 

@@ -22,7 +22,7 @@ export default function LandingNav() {
             alt="Nyx Logo"
             width="105"
             height="42"
-            style={{ height: '42px', width: 'auto', objectFit: 'contain', display: 'block' }}
+            style={{ height: '34px', width: 'auto', objectFit: 'contain', display: 'block' }}
           />
         </Link>
 
@@ -70,6 +70,14 @@ export default function LandingNav() {
       {/* Mobile drawer */}
       {menuOpen && (
         <div className="land-nav-mobile" role="dialog" aria-label="Mobile navigation">
+          <button
+            type="button"
+            className="land-nav-mobile-close"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
           <Link href="/" onClick={() => setMenuOpen(false)}>Home</Link>
           <a href="#world" onClick={() => setMenuOpen(false)}>The World</a>
           <a href="#process" onClick={() => setMenuOpen(false)}>How it works</a>
