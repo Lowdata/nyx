@@ -13,8 +13,8 @@ export default function LandingPage() {
       <main>
         <LandingHero />
         <WorldSection />
-        <HowItWorks />
         <SwapDesk />
+        <HowItWorks />
         <AirdropTeaser />
       </main>
       <Footer />

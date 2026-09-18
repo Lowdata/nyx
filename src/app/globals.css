@@ -88,9 +88,22 @@ section {
 }
 
 .wrap {
-  max-width: 1120px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 32px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .wrap {
+    padding: 0 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .wrap {
+    padding: 0 16px;
+  }
 }
 
 /* ---------- BACKDROP ---------- */
@@ -3832,12 +3845,9 @@ footer {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 32px;
+  padding: 18px 0;
   background: transparent;
-  transition: background 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+  transition: background 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease, padding 0.3s ease;
   border-bottom: 1px solid transparent;
 }
 .land-nav--scrolled {
@@ -3846,15 +3856,23 @@ footer {
   -webkit-backdrop-filter: blur(20px);
   border-bottom-color: rgba(238, 236, 247, 0.08);
   box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  padding: 12px 0;
+}
+.land-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 .land-nav-brand {
   display: flex; align-items: center; gap: 10px;
   font-family: var(--font-fredoka), sans-serif;
   font-size: 1.35rem; font-weight: 600;
   letter-spacing: -0.01em; color: var(--cloud); text-decoration: none;
+  flex-shrink: 0;
 }
 .land-nav-links {
-  display: flex; align-items: center; gap: 32px;
+  display: flex; align-items: center; gap: 28px;
   font-size: 0.95rem; font-weight: 600;
 }
 .land-nav-links a { color: var(--cloud-dim); text-decoration: none; transition: color 0.2s ease; }
@@ -3888,15 +3906,18 @@ footer {
 .land-nav-mobile {
   position: fixed; top: 0; left: 0; right: 0; z-index: 59;
   background: var(--void); border-bottom: 1px solid var(--line);
-  padding: 90px 28px 28px; display: flex; flex-direction: column; gap: 4px;
+  padding: 84px 24px 28px; display: flex; flex-direction: column; gap: 4px;
 }
 .land-nav-mobile a {
   color: var(--cloud-dim); text-decoration: none; font-size: 1.1rem;
   padding: 13px 0; border-bottom: 1px solid var(--line);
 }
-@media (max-width: 700px) {
+@media (max-width: 768px) {
+  .land-nav { padding: 12px 0; }
+  .land-nav-brand img { height: 32px !important; }
   .land-nav-links { display: none; }
   .land-nav-hamburger { display: flex; }
+  .land-nav-cta { padding: 8px 14px; font-size: 0.8rem; }
 }
 
 /* ---------- LANDING HERO ---------- */
@@ -3949,14 +3970,14 @@ footer {
 }
 .land-hero-word.visible { opacity: 1; transform: translateY(0); }
 .land-hero-sub {
-  font-size: clamp(1rem, 2vw, 1.18rem); color: var(--cloud-dim);
-  max-width: 46ch; line-height: 1.7; margin-bottom: 36px;
+  font-size: 1.18rem; color: var(--cloud-dim); line-height: 1.65;
+  max-width: 48ch; margin: 0 0 36px;
   opacity: 0; transform: translateY(16px);
-  transition: opacity 0.55s ease 0.1s, transform 0.55s ease 0.1s;
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
 .land-hero-sub.visible { opacity: 1; transform: translateY(0); }
 .land-hero-actions {
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 36px;
+  display: flex; align-items: center; gap: 20px; margin-bottom: 44px;
   opacity: 0; transform: translateY(12px);
   transition: opacity 0.5s ease 0.15s, transform 0.5s ease 0.15s;
 }
@@ -4009,8 +4030,44 @@ footer {
   0%, 100% { transform: translateX(-50%) translateY(0); }
   50% { transform: translateX(-50%) translateY(6px); }
 }
-@media (max-width: 640px) {
-  .land-hero-content { padding-top: 110px; padding-bottom: 100px; }
+@media (max-width: 768px) {
+  .land-hero-content { padding-top: 100px; padding-bottom: 80px; }
+  .land-hero-title {
+    font-size: clamp(2.2rem, 8.5vw, 3.8rem);
+    line-height: 1.05;
+    max-width: 100%;
+    margin-bottom: 18px;
+  }
+  .land-hero-sub {
+    font-size: 0.98rem;
+    line-height: 1.6;
+    max-width: 100%;
+    margin-bottom: 24px;
+  }
+  .land-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+  }
+  .land-cta-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 20px;
+  }
+  .land-ghost-btn {
+    justify-content: center;
+    padding: 6px 0;
+  }
+  .land-hero-stats {
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .land-stat-pill {
+    font-size: 0.74rem;
+    padding: 6px 11px;
+  }
   .land-scroll-hint { display: none; }
 }
 
@@ -4382,4 +4439,116 @@ footer {
   }
 }
 
-/* ================================================================ */
+/* ================================================================
+   COMPREHENSIVE MOBILE RESPONSIVENESS OVERRIDES FOR LANDING
+   ================================================================ */
+@media (max-width: 768px) {
+  /* World section */
+  .land-world {
+    padding: 70px 0 50px;
+  }
+  .land-lore-grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    margin-bottom: 48px;
+  }
+  .land-photo-frame {
+    max-width: 290px;
+    margin: 0 auto;
+    padding: 10px 10px 42px;
+    transform: rotate(-1deg);
+  }
+  .land-photo-cap {
+    font-size: 0.85rem;
+  }
+  .land-symbols-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+  .land-flywheel-wrap {
+    padding: 24px 14px;
+    border-radius: 18px;
+  }
+  .land-flywheel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .land-flywheel-arrow {
+    display: none;
+  }
+  .land-flywheel-node {
+    min-width: unset;
+    width: 100%;
+    padding: 14px 8px;
+  }
+
+  /* Swap Desk */
+  .land-swap {
+    padding: 70px 0;
+  }
+  .land-desk {
+    padding: 8px;
+    border-radius: 6px;
+    transform: none !important;
+  }
+  .land-desk-art {
+    border-radius: 3px;
+  }
+  .land-desk-actions button {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  /* How It Works (Ritual) */
+  .land-process {
+    padding: 70px 0;
+  }
+  .land-process-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .land-entry {
+    --tilt: 0deg !important;
+    padding: 20px 18px;
+    transform: none !important;
+  }
+
+  /* Airdrop / Cork Board */
+  .land-airdrop {
+    padding: 70px 0;
+  }
+  .land-cork {
+    padding: 20px 12px;
+    border-width: 6px;
+    margin-bottom: 36px;
+  }
+  .land-cork-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .land-note {
+    --note-r: 0deg !important;
+    padding: 16px 14px;
+    font-size: 1.05rem;
+    transform: none !important;
+  }
+
+  /* Footer */
+  footer {
+    padding: 36px 0 50px;
+  }
+  .foot-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+  }
+  .foot-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+}
+

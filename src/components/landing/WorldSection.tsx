@@ -90,13 +90,13 @@ export default function WorldSection() {
               <div className="land-tape land-tape-tl" aria-hidden="true" />
               <div className="land-tape land-tape-tr" aria-hidden="true" />
               <Image
-                src="/3.png"
-                alt="Nyx character art"
+                src="/myth.webp"
+                alt="Nyx myth art"
                 width={480}
                 height={480}
-                style={{ width: '100%', height: 'auto', display: 'block', filter: 'saturate(0.9)' }}
+                style={{ width: '100%', height: 'auto', display: 'block', filter: 'saturate(0.95)' }}
               />
-              <p className="land-photo-cap">entry no. 003 · still half asleep</p>
+              <p className="land-photo-cap">the myth · still half asleep</p>
             </div>
           </div>
         </div>

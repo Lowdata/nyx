@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 
 interface NavbarProps {
   walletAddress: string | null;
@@ -77,7 +78,7 @@ export default function Navbar({
 
   return (
     <nav className="nav" aria-label="Main Navigation">
-      <a href="#top" className="nav-brand" aria-label="Nyx">
+      <Link href="/" className="nav-brand" aria-label="Nyx - Home">
         <img
           src="/nyxlogo.webp"
           alt="Nyx Logo"
@@ -85,9 +86,10 @@ export default function Navbar({
           height="42"
           style={{ height: '40px', width: 'auto', objectFit: 'contain', display: 'block' }}
         />
-      </a>
+      </Link>
 
       <div className="nav-links">
+        <Link href="/">Home</Link>
         <a href="#meter">Dream meter</a>
         <a href="#referrals">Referrals</a>
         <a href="#rituals">Rituals</a>

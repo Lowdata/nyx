@@ -1,12 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const IMAGES = Array.from({ length: 30 }, (_, i) => `/${i + 1}.png`);
+const IMAGES = Array.from({ length: 30 }, (_, i) => `/${i + 1}.webp`);
 
 export default function SwapDesk() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isFading, setIsFading] = useState(false);
+
+  // Preload all 30 optimized webp images on mount for instantaneous rendering
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    IMAGES.forEach((src) => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }, []);
 
   const handleReroll = () => {
     if (isFading) return;
@@ -20,7 +29,7 @@ export default function SwapDesk() {
     setTimeout(() => {
       setCurrentIdx(nextIdx);
       setIsFading(false);
-    }, 220);
+    }, 180);
   };
 
   return (

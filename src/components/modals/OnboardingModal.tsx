@@ -233,7 +233,7 @@ export default function OnboardingModal({
         {/* ── Left: Full-bleed art ── */}
         <div className="ob-art-side" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/3.png" alt="" className="ob-art-img" draggable={false} />
+          <img src="/myth.webp" alt="" className="ob-art-img" draggable={false} />
           {/* Gradient fades into content panel */}
           <div className="ob-art-fade" />
           <div className="ob-art-fade-bottom" />
