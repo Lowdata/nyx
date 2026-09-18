@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     const db = await getDb();
 
-    // 4. Ban check — prevent banned actors from completing tasks
+    // 4. Ban check - prevent banned actors from completing tasks
     const realIp = getRealIp(req.headers);
     const blockCheck = await checkPersistentBlock(realIp, normalizedAddress, db);
     if (blockCheck.blocked) {

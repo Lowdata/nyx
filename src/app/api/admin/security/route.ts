@@ -28,7 +28,7 @@ function verifyAdmin(req: NextRequest): boolean {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/admin/security — full security dashboard snapshot
+// GET /api/admin/security - full security dashboard snapshot
 // ─────────────────────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   if (!verifyAdmin(req)) {
@@ -45,14 +45,14 @@ export async function GET(req: NextRequest) {
       .sort({ blockedAt: -1 })
       .toArray();
 
-    // 2. Sybil flags — IPs with more than SYBIL_THRESHOLD wallets
+    // 2. Sybil flags - IPs with more than SYBIL_THRESHOLD wallets
     const sybilFlags = await db
       .collection('sybilFlags')
       .find({})
       .sort({ walletCount: -1, flaggedAt: -1 })
       .toArray();
 
-    // 3. Country analytics — aggregate trafficLogs by country
+    // 3. Country analytics - aggregate trafficLogs by country
     const countryPipeline = [
       { $group: { _id: '$country', hits: { $sum: 1 } } },
       { $sort: { hits: -1 } },
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
       .aggregate(countryPipeline)
       .toArray();
 
-    // 4. Endpoint analytics — traffic by path
+    // 4. Endpoint analytics - traffic by path
     const pathPipeline = [
       { $group: { _id: '$path', hits: { $sum: 1 } } },
       { $sort: { hits: -1 } },
@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /api/admin/security — ban or unban actors
+// POST /api/admin/security - ban or unban actors
 // Body: { action: 'ban' | 'unban', target: string, type?: 'ip' | 'address', reason?: string }
 // ─────────────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {

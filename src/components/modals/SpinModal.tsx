@@ -72,7 +72,7 @@ const SECTORS: WheelSector[] = [
     gradient: ['#3e163b', '#6b205e'],
     textColor: '#fbcfe8',
     icon: '👑',
-    weight: 5, // Rarest — max jackpot
+    weight: 5, // Rarest - max jackpot
   },
   {
     id: 'pts-15',

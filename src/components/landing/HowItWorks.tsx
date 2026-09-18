@@ -14,21 +14,21 @@ const STEPS = [
     no: '02',
     icon: '✶',
     title: 'Post on X',
-    body: "Tweet about Nyx. The community's voice is part of the ritual — every post adds weight to the circle.",
+    body: "Tweet about Nyx. The community's voice is part of the ritual: every post adds weight to the circle.",
     color: 'var(--gold)',
   },
   {
     no: '03',
     icon: '⌇',
     title: 'Invite Friends',
-    body: "Referrals multiply points. The meter climbs collectively, not alone — that's the whole point of the dream.",
+    body: "Referrals multiply points. The meter climbs collectively, not alone: that's the whole point of the dream.",
     color: 'var(--gold-deep)',
   },
   {
     no: '04',
     icon: '✦',
     title: 'Claim Your Spot',
-    body: 'FCFS slots, Guaranteed spots — what you unlock depends on how far the whole circle gets before he wakes.',
+    body: 'FCFS slots, Guaranteed spots: what you unlock depends on how far the whole circle gets before he wakes.',
     color: '#10b981',
   },
 ];
@@ -62,7 +62,7 @@ export default function HowItWorks() {
           The ritual has four steps.
         </h2>
         <p className="land-section-sub">
-          A collective act. Not a lottery, not a gamble — a circle that proves itself.
+          A collective act. Not a lottery, not a gamble: a circle that proves itself.
         </p>
 
         <div className="land-process-grid">

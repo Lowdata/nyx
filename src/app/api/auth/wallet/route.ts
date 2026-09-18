@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     const db = await getDb();
 
-    // 4. Persistent ban check — runs before any DB user lookup
+    // 4. Persistent ban check - runs before any DB user lookup
     const realIp = getRealIp(req.headers);
     const blockCheck = await checkPersistentBlock(realIp, normalizedAddress, db);
     if (blockCheck.blocked) {
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
         }
       } catch {
         // If Cloudflare is unreachable, allow through (fail open) to not block legit users
-        console.warn('Turnstile verification unreachable — allowing request through');
+        console.warn('Turnstile verification unreachable - allowing request through');
       }
     }
 

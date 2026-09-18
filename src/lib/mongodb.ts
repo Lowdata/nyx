@@ -166,7 +166,7 @@ export async function getDb(): Promise<Db> {
       await db.collection('blockedActors').createIndex({ target: 1 }, { unique: true });
       await db.collection('blockedActors').createIndex({ type: 1, blockedAt: -1 });
 
-      // ipWallets: Sybil tracking — maps each (IP, address) pair
+      // ipWallets: Sybil tracking - maps each (IP, address) pair
       await db.collection('ipWallets').createIndex({ ip: 1 });
       await db.collection('ipWallets').createIndex({ ip: 1, address: 1 }, { unique: true });
       // TTL: auto-delete after 7 days to keep data fresh and compliant
@@ -179,7 +179,7 @@ export async function getDb(): Promise<Db> {
       await db.collection('sybilFlags').createIndex({ ip: 1 }, { unique: true });
       await db.collection('sybilFlags').createIndex({ reviewed: 1, flaggedAt: -1 });
 
-      // trafficLogs: geo-analytics — auto-expire after 30 days
+      // trafficLogs: geo-analytics - auto-expire after 30 days
       await db.collection('trafficLogs').createIndex(
         { createdAt: 1 },
         { expireAfterSeconds: 30 * 24 * 60 * 60 }

@@ -17,7 +17,7 @@ const SYMBOLS = [
   {
     icon: '🛹',
     title: 'The Skateboard',
-    desc: 'Movement without destination. Nyx rides the in-between — neither asleep nor awake.',
+    desc: 'Movement without destination. Nyx rides the in-between, neither asleep nor awake.',
   },
   {
     icon: '📜',
@@ -69,8 +69,8 @@ export default function WorldSection() {
             </h2>
             <p className="land-lore-body">
               Long before the first mint, Nyx ruled the space between waking and
-              dreaming. Tired of the noise, he folded himself into sleep —
-              skateboard tucked under one arm, camera at his side — and left the
+              dreaming. Tired of the noise, he folded himself into sleep,
+              skateboard tucked under one arm, camera at his side, and left the
               dream world quiet and unclaimed.
             </p>
             <p className="land-lore-body">
@@ -81,7 +81,7 @@ export default function WorldSection() {
             <p className="land-lore-body">
               That's the loop this collection runs on. Community actions fill the
               meter. The meter moves Nyx from sleep toward waking. And what you
-              unlock depends on how far the whole circle gets — not just you.
+              unlock depends on how far the whole circle gets, not just you.
             </p>
           </div>
 
@@ -90,13 +90,13 @@ export default function WorldSection() {
               <div className="land-tape land-tape-tl" aria-hidden="true" />
               <div className="land-tape land-tape-tr" aria-hidden="true" />
               <Image
-                src="/nyx_art.jpg"
+                src="/3.png"
                 alt="Nyx character art"
                 width={480}
                 height={480}
                 style={{ width: '100%', height: 'auto', display: 'block', filter: 'saturate(0.9)' }}
               />
-              <p className="land-photo-cap">entry no. 001 · still half asleep</p>
+              <p className="land-photo-cap">entry no. 003 · still half asleep</p>
             </div>
           </div>
         </div>

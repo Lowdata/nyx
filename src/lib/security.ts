@@ -112,7 +112,7 @@ export async function recordIpWalletConnection(
   try {
     const col = db.collection('ipWallets');
 
-    // Upsert the (ip, address) pair — compound unique index prevents duplicates
+    // Upsert the (ip, address) pair - compound unique index prevents duplicates
     await col.updateOne(
       { ip, address: address.toLowerCase() },
       {
@@ -129,7 +129,7 @@ export async function recordIpWalletConnection(
     const distinctCount = await col.countDocuments({ ip });
 
     if (distinctCount > SYBIL_THRESHOLD) {
-      // Log the Sybil flag (auto-flag, but do NOT auto-ban — admin reviews first)
+      // Log the Sybil flag (auto-flag, but do NOT auto-ban - admin reviews first)
       const flagsCol = db.collection('sybilFlags');
       await flagsCol.updateOne(
         { ip },
@@ -189,7 +189,7 @@ export async function recordTrafficHit(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Returns true if the referrer's wallet was also connected from the same IP —
+ * Returns true if the referrer's wallet was also connected from the same IP -
  * i.e. this is likely a self-referral from the same person / device.
  */
 export async function isSameIpReferral(

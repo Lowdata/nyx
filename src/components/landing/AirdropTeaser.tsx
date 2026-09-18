@@ -7,7 +7,7 @@ const NOTES = [
   { text: 'heard FCFS spots drop before he fully wakes', tag: '#rumor', rotate: '-2.5deg' },
   { text: 'guaranteed mint = you + your circle. not solo', tag: '#confirmed', rotate: '1.5deg' },
   { text: '$NYX utility TBD but the art alone is worth it', tag: '#alpha', rotate: '-1deg' },
-  { text: 'airdrop for early dreamers — wallet must be verified', tag: '#official', rotate: '2deg' },
+  { text: 'airdrop for early dreamers: wallet must be verified', tag: '#official', rotate: '2deg' },
   { text: "referrals multiply your points. don't sleep on this", tag: '#tip', rotate: '-1.8deg' },
   { text: "meter hits 100% → Nyx opens his eyes. that's the launch", tag: '#lore', rotate: '1.2deg' },
 ];

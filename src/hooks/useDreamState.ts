@@ -117,12 +117,12 @@ export function useDreamState() {
             })
             .catch(() => {});
         } else {
-          // No wallet associated with saved state — reset to clean DEFAULT_STATE
+          // No wallet associated with saved state - reset to clean DEFAULT_STATE
           localStorage.removeItem(STORAGE_KEY);
           setState(DEFAULT_STATE);
         }
       } else {
-        // Unauthenticated visitor — clean slate with 0 points
+        // Unauthenticated visitor - clean slate with 0 points
         try {
           localStorage.removeItem(STORAGE_KEY);
           localStorage.removeItem(SESSION_TOKEN_KEY);
@@ -205,7 +205,7 @@ export function useDreamState() {
       let signature = '';
       let message = '';
 
-      // Demo mode is only allowed on localhost — never on production
+      // Demo mode is only allowed on localhost - never on production
       const isLocalhost = typeof window !== 'undefined' &&
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       const isDemo = !!options?.isDemo || (!window.ethereum && isLocalhost);

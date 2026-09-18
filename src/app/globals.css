@@ -2589,7 +2589,7 @@ section {
   pointer-events: auto;
 }
 
-/* Main card — cinematic split */
+/* Main card - cinematic split */
 .ob-panel {
   display: grid;
   grid-template-columns: 300px 1fr;
@@ -3824,7 +3824,7 @@ footer {
 }
 
 /* ================================================================
-   LANDING PAGE — all styles prefixed with .land-
+   LANDING PAGE - all styles prefixed with .land-
    ================================================================ */
 
 /* ---------- LANDING NAV ---------- */

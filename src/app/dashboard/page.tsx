@@ -112,12 +112,12 @@ export default function Home() {
 
   const handleOnboardClose = () => {
     if (state.walletAddress || userDisconnectedRef.current) {
-      // Fully authed or user intentionally logged out — dismiss permanently
+      // Fully authed or user intentionally logged out - dismiss permanently
       setOnboardOpen(false);
       if (repromptTimerRef.current) clearTimeout(repromptTimerRef.current);
       return;
     }
-    // Not yet authed — re-fire in 10 seconds
+    // Not yet authed - re-fire in 10 seconds
     setOnboardOpen(false);
     dismissedAtRef.current = Date.now();
     if (repromptTimerRef.current) clearTimeout(repromptTimerRef.current);

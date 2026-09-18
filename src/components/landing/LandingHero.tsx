@@ -80,7 +80,7 @@ export default function LandingHero() {
         </h1>
 
         <p className={`land-hero-sub ${subVisible ? 'visible' : ''}`}>
-          He wakes when the circle proves itself real — one wallet, one post,
+          He wakes when the circle proves itself real: one wallet, one post,
           one dream at a time.
         </p>
 

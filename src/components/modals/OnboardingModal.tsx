@@ -131,7 +131,7 @@ export default function OnboardingModal({
     if (!isOpen || !walletAddress) return;
 
     if (twitterDone || twitterHandle) {
-      // Twitter already linked — required onboarding complete, close modal immediately!
+      // Twitter already linked - required onboarding complete, close modal immediately!
       onClose();
     } else if (step === 1) {
       const t = setTimeout(() => {
@@ -233,7 +233,7 @@ export default function OnboardingModal({
         {/* ── Left: Full-bleed art ── */}
         <div className="ob-art-side" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/nyx_art.jpg" alt="" className="ob-art-img" draggable={false} />
+          <img src="/3.png" alt="" className="ob-art-img" draggable={false} />
           {/* Gradient fades into content panel */}
           <div className="ob-art-fade" />
           <div className="ob-art-fade-bottom" />
@@ -248,7 +248,7 @@ export default function OnboardingModal({
         <div className="ob-content-side">
           <button type="button" className="ob-close-btn" onClick={onClose} aria-label="Close">✕</button>
 
-          {/* STEP 1 — Connect Wallet */}
+          {/* STEP 1 - Connect Wallet */}
           {effectiveStep === 1 && (
             <div className="ob-step-content" key={`s1-${stepKey}`}>
               <div className="ob-kicker">
@@ -287,19 +287,19 @@ export default function OnboardingModal({
               </button>
               {(localError || connectError) && <p className="ob-error">{localError || connectError}</p>}
 
-              {/* Cloudflare Turnstile — invisible bot challenge mounts here */}
+              {/* Cloudflare Turnstile - invisible bot challenge mounts here */}
               <div ref={turnstileContainerRef} style={{ marginTop: '8px' }} />
             </div>
           )}
 
-          {/* Cloudflare Turnstile script — loads once globally */}
+          {/* Cloudflare Turnstile script - loads once globally */}
           <Script
             src="https://challenges.cloudflare.com/turnstile/v0/api.js"
             strategy="lazyOnload"
             onLoad={() => setTurnstileReady(true)}
           />
 
-          {/* STEP 2 — Connect Twitter */}
+          {/* STEP 2 - Connect Twitter */}
           {effectiveStep === 2 && (
             <div className="ob-step-content" key={`s2-${stepKey}`}>
               <div className="ob-kicker">
@@ -389,7 +389,7 @@ export default function OnboardingModal({
             </div>
           )}
 
-          {/* STEP 3 — Optional Referral */}
+          {/* STEP 3 - Optional Referral */}
           {effectiveStep === 3 && (
             <div className="ob-step-content" key={`s3-${stepKey}`}>
               <div className="ob-kicker">

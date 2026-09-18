@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Nyx Security Layer — Automated Test Suite
+ * Nyx Security Layer - Automated Test Suite
  * Run against local dev server: node scripts/test-security.mjs
  *
  * Requires: npm run dev running on http://localhost:3000
@@ -14,7 +14,7 @@ let passed = 0;
 let failed = 0;
 
 function log(icon, label, detail) {
-  console.log(`  ${icon}  ${label}${detail ? ` — ${detail}` : ''}`);
+  console.log(`  ${icon}  ${label}${detail ? ` - ${detail}` : ''}`);
 }
 
 async function test(label, fn) {
@@ -139,7 +139,7 @@ await test('Admin GET succeeds with correct ADMIN_SECRET', async () => {
 console.log('\n📋 Test Group 3: Persistent Ban System');
 
 const TEST_BAN_WALLET = '0xdemo_testban1234567890';
-const TEST_BAN_IP = '203.0.113.199'; // RFC 5737 documentation IP — safe to use in tests
+const TEST_BAN_IP = '203.0.113.199'; // RFC 5737 documentation IP - safe to use in tests
 
 await test('Admin can ban a wallet address', async () => {
   const res = await adminPost({
@@ -155,7 +155,7 @@ await test('Admin can ban a wallet address', async () => {
 
 await test('Banned wallet address returns 403 on auth', async () => {
   const res = await authWallet(TEST_BAN_WALLET);
-  // 403 OR we may get 400 from format check before ban — check for one of these
+  // 403 OR we may get 400 from format check before ban - check for one of these
   assert(
     res.status === 403 || res.status === 400,
     `Expected 403 or 400, got ${res.status}`
