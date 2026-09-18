@@ -15,18 +15,22 @@ export default function LandingNav() {
 
   return (
     <nav className={`land-nav ${scrolled ? 'land-nav--scrolled' : ''}`} aria-label="Landing navigation">
-      <a href="#top" className="land-nav-brand">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" fill="#f0d9a0" />
-        </svg>
-        <span>Nyx</span>
+      <a href="#top" className="land-nav-brand" aria-label="Nyx">
+        <img
+          src="/nyxlogo.webp"
+          alt="Nyx Logo"
+          width="105"
+          height="42"
+          style={{ height: '42px', width: 'auto', objectFit: 'contain', display: 'block' }}
+        />
       </a>
 
       {/* Desktop links */}
       <div className="land-nav-links" aria-hidden={menuOpen}>
         <a href="#world">The World</a>
         <a href="#process">How it works</a>
-        <a href="#airdrop">$NYKZ</a>
+        <a href="#swap">Swap</a>
+        <a href="#airdrop">$NYX</a>
       </div>
 
       <div className="land-nav-actions">
@@ -66,7 +70,8 @@ export default function LandingNav() {
         <div className="land-nav-mobile" role="dialog" aria-label="Mobile navigation">
           <a href="#world" onClick={() => setMenuOpen(false)}>The World</a>
           <a href="#process" onClick={() => setMenuOpen(false)}>How it works</a>
-          <a href="#airdrop" onClick={() => setMenuOpen(false)}>$NYKZ</a>
+          <a href="#swap" onClick={() => setMenuOpen(false)}>Swap</a>
+          <a href="#airdrop" onClick={() => setMenuOpen(false)}>$NYX</a>
           <Link href="/dashboard" className="land-nav-cta land-nav-cta--full" onClick={() => setMenuOpen(false)}>
             Enter the Dream →
           </Link>

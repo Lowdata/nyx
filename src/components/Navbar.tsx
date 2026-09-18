@@ -77,21 +77,14 @@ export default function Navbar({
 
   return (
     <nav className="nav" aria-label="Main Navigation">
-      <a href="#top" className="nav-brand">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <path
-            d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"
-            fill="#f0d9a0"
-          />
-        </svg>
-        <span>Nyx</span>
+      <a href="#top" className="nav-brand" aria-label="Nyx">
+        <img
+          src="/nyxlogo.webp"
+          alt="Nyx Logo"
+          width="105"
+          height="42"
+          style={{ height: '40px', width: 'auto', objectFit: 'contain', display: 'block' }}
+        />
       </a>
 
       <div className="nav-links">

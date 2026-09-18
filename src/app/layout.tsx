@@ -22,7 +22,9 @@ export const metadata: Metadata = {
   title: 'Nyx: Wake the God of Sleep',
   description: 'He wakes when the circle proves itself: one wallet, one post, one dream at a time.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/nyxlogo.webp',
+    shortcut: '/nyxlogo.webp',
+    apple: '/nyxlogo.webp',
   },
   openGraph: {
     title: 'Nyx: Wake the God of Sleep',

@@ -6,7 +6,7 @@ import Link from 'next/link';
 const NOTES = [
   { text: 'heard FCFS spots drop before he fully wakes', tag: '#rumor', rotate: '-2.5deg' },
   { text: 'guaranteed mint = you + your circle. not solo', tag: '#confirmed', rotate: '1.5deg' },
-  { text: '$NYKZ utility TBD but the art alone is worth it', tag: '#alpha', rotate: '-1deg' },
+  { text: '$NYX utility TBD but the art alone is worth it', tag: '#alpha', rotate: '-1deg' },
   { text: 'airdrop for early dreamers — wallet must be verified', tag: '#official', rotate: '2deg' },
   { text: "referrals multiply your points. don't sleep on this", tag: '#tip', rotate: '-1.8deg' },
   { text: "meter hits 100% → Nyx opens his eyes. that's the launch", tag: '#lore', rotate: '1.2deg' },
@@ -43,9 +43,9 @@ export default function AirdropTeaser() {
         <div className="land-airdrop-header">
           <div className="land-ticker" aria-label="Live: Airdrop active">
             <span className="land-ticker-dot" style={{ opacity: dotOn ? 1 : 0.2 }} aria-hidden="true" />
-            <span>$NYKZ · Airdrop rumours</span>
+            <span>$NYX · Airdrop rumours</span>
           </div>
-          <p className="land-kicker" style={{ marginTop: 20 }}>$NYKZ</p>
+          <p className="land-kicker" style={{ marginTop: 20 }}>$NYX</p>
           <h2 id="airdrop-heading" className="land-section-title">
             The dream world has its own currency.
           </h2>
