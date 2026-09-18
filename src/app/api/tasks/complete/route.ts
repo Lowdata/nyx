@@ -143,29 +143,49 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 7. Atomically Update User Points & tasksDone Map
-    const currentPoints = user.points || 0;
-    const newPoints = Math.min(MAX_TARGET_POINTS, currentPoints + pointsToAward);
-
-    await usersCol.updateOne(
-      { address: normalizedAddress },
+    // 7. Atomically Update User Points & tasksDone Map (prevents concurrent clobbering)
+    const updateResult = await usersCol.updateOne(
+      {
+        address: normalizedAddress,
+        [`tasksDone.${taskId}`]: { $ne: true },
+      },
       {
         $set: {
           [`tasksDone.${taskId}`]: true,
-          points: newPoints,
           lastActiveAt: Date.now(),
+        },
+        $inc: {
+          points: pointsToAward,
         },
       }
     );
+
+    if (updateResult.modifiedCount === 0) {
+      // Task was already marked completed concurrently
+      const currentUser = await usersCol.findOne({ address: normalizedAddress });
+      return NextResponse.json({
+        success: true,
+        message: 'Task already completed',
+        taskId,
+        alreadyCompleted: true,
+        user: currentUser,
+      });
+    }
+
+    // Atomically clamp points if they exceed MAX_TARGET_POINTS
+    await usersCol.updateOne(
+      { address: normalizedAddress, points: { $gt: MAX_TARGET_POINTS } },
+      { $set: { points: MAX_TARGET_POINTS } }
+    );
+
+    const updatedUser = await usersCol.findOne({ address: normalizedAddress });
 
     logger.info('DB:tasks', `Task "${taskId}" recorded in MongoDB (${db.databaseName})`, {
       address: normalizedAddress,
       taskId,
       ptsAwarded: pointsToAward,
-      newPoints,
+      newPoints: updatedUser?.points,
     });
-
-    const updatedUser = await usersCol.findOne({ address: normalizedAddress });
 
     return NextResponse.json({
       success: true,

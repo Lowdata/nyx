@@ -93,22 +93,24 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // 5. Anti-Replay: Verify nonce has not been consumed
+      // 5. Anti-Replay: Atomically consume nonce to prevent race condition replays
       if (verification.nonce) {
-        const existingNonce = await usedNoncesCollection.findOne({ nonce: verification.nonce });
-        if (existingNonce) {
+        try {
+          await usedNoncesCollection.insertOne({
+            nonce: verification.nonce,
+            address: normalizedAddress,
+            createdAt: new Date(),
+          });
+        } catch {
+          logger.warn('Auth:wallet', 'Signature replay attempt detected', {
+            nonce: verification.nonce,
+            address: normalizedAddress,
+          });
           return NextResponse.json(
             { error: 'Signature replay detected. Please sign a fresh request.' },
             { status: 403 }
           );
         }
-
-        // Atomically record used nonce
-        await usedNoncesCollection.insertOne({
-          nonce: verification.nonce,
-          address: normalizedAddress,
-          createdAt: new Date(),
-        });
       }
     }
 
