@@ -5,7 +5,7 @@ import { TaskItem } from '@/types';
 
 interface TaskCardProps {
   tasksDone?: Record<string, boolean>;
-  onCompleteTask: (taskId: string, pts: number) => void;
+  onCompleteTask: (taskId: string, pts: number) => Promise<unknown> | void;
   referralCode: string | null;
   referralsCount?: number;
   onConnectWallet?: () => void;
@@ -86,7 +86,7 @@ export default function TaskCard({
 }: TaskCardProps) {
   const safeTasksDone = tasksDone || {};
   const [tasks, setTasks] = useState<TaskItem[]>(DEFAULT_TASK_ITEMS);
-  const [activeTimers, setActiveTimers] = useState<Record<string, number>>({});
+  const [verifyingTasks, setVerifyingTasks] = useState<Record<string, boolean>>({});
   const [showInfo, setShowInfo] = useState(false);
   const [, setCopiedLink] = useState<string | null>(
     referralCode ? `https://nyx.gg/?ref=${referralCode}` : null
@@ -94,6 +94,7 @@ export default function TaskCard({
 
   const tasksRef = useRef<TaskItem[]>(tasks);
   const onCompleteRef = useRef(onCompleteTask);
+  const timeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   useEffect(() => {
     tasksRef.current = tasks;
@@ -102,6 +103,13 @@ export default function TaskCard({
   useEffect(() => {
     onCompleteRef.current = onCompleteTask;
   }, [onCompleteTask]);
+
+  // Clean up all pending timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(timeoutsRef.current).forEach(clearTimeout);
+    };
+  }, []);
 
   // 1. Fetch live tasks from MongoDB collection
   useEffect(() => {
@@ -117,57 +125,14 @@ export default function TaskCard({
       });
   }, []);
 
-  // 2. Auto-Complete Countdown Timer (runs in background without displaying numbers)
-  useEffect(() => {
-    const hasRunningTimers = Object.values(activeTimers).some((s) => s > 0);
-    if (!hasRunningTimers) return;
-
-    const interval = setInterval(() => {
-      const completedList: { taskId: string; pts: number }[] = [];
-
-      setActiveTimers((prev) => {
-        const next = { ...prev };
-        let updated = false;
-
-        for (const [taskId, remaining] of Object.entries(next)) {
-          if (remaining > 1) {
-            next[taskId] = remaining - 1;
-            updated = true;
-          } else if (remaining === 1) {
-            delete next[taskId];
-            updated = true;
-
-            const matchedTask = tasksRef.current.find((t) => t.id === taskId);
-            const pts = matchedTask ? matchedTask.pts : 50;
-            completedList.push({ taskId, pts });
-          }
-        }
-
-        return updated ? next : prev;
-      });
-
-      // Schedule callback outside the React state updater to avoid setState in render error
-      if (completedList.length > 0) {
-        setTimeout(() => {
-          for (const item of completedList) {
-            onCompleteRef.current(item.taskId, item.pts);
-          }
-        }, 0);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [activeTimers]);
-
-  // 3. User clicks any task: immediate action redirect/copy + start background verification
+  // 2. User clicks any task: immediate action redirect/copy + reliable background verification
   const handleTaskClick = (task: TaskItem) => {
     if (task.id !== 'referral' && safeTasksDone[task.id]) return;
-    if (activeTimers[task.id] && activeTimers[task.id] > 0) return;
+    if (verifyingTasks[task.id]) return;
 
     // Direct Action Execution
     if (task.id === 'connect') {
       if (onConnectWallet) onConnectWallet();
-      setActiveTimers((prev) => ({ ...prev, [task.id]: 8 }));
       return;
     }
 
@@ -204,8 +169,29 @@ export default function TaskCard({
       window.open(targetLink, '_blank', 'noopener,noreferrer');
     }
 
-    // Start auto-completion timer (user only sees existing circular spinner)
-    setActiveTimers((prev) => ({ ...prev, [task.id]: 6 }));
+    // Show circular verification spinner immediately
+    setVerifyingTasks((prev) => ({ ...prev, [task.id]: true }));
+
+    if (timeoutsRef.current[task.id]) {
+      clearTimeout(timeoutsRef.current[task.id]);
+    }
+
+    // Start 7-second completion timer that reliably triggers onCompleteTask
+    timeoutsRef.current[task.id] = setTimeout(async () => {
+      try {
+        console.log(`[TaskCard] Verification complete for "${task.id}". Calling onCompleteTask...`);
+        await onCompleteRef.current(task.id, task.pts);
+      } catch (err) {
+        console.error(`[TaskCard] Error completing task "${task.id}":`, err);
+      } finally {
+        setVerifyingTasks((prev) => {
+          const next = { ...prev };
+          delete next[task.id];
+          return next;
+        });
+        delete timeoutsRef.current[task.id];
+      }
+    }, 7000);
   };
 
   const doneCount = tasks.filter((t) => !!safeTasksDone[t.id]).length;
@@ -312,8 +298,7 @@ export default function TaskCard({
             t.id === 'referral'
               ? !!safeTasksDone.referral || (typeof referralsCount === 'number' && referralsCount > 0)
               : !!safeTasksDone[t.id];
-          const remainingSec = activeTimers[t.id];
-          const isVerifying = typeof remainingSec === 'number' && remainingSec > 0;
+          const isVerifying = !!verifyingTasks[t.id];
 
           return (
             <div

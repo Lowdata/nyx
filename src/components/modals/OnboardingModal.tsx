@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Script from 'next/script';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -51,57 +50,6 @@ export default function OnboardingModal({
   const [refLoading, setRefLoading] = useState(false);
   const [stepKey, setStepKey] = useState(0);
 
-  // Cloudflare Turnstile
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [turnstileReady, setTurnstileReady] = useState(false);
-  const turnstileContainerRef = useRef<HTMLDivElement>(null);
-  const turnstileWidgetId = useRef<string | null>(null);
-
-  // Render the Turnstile invisible widget when the modal opens on step 1
-  useEffect(() => {
-    if (!isOpen || step !== 1 || !turnstileReady) return;
-    if (turnstileWidgetId.current) return; // already rendered
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-    if (!siteKey || !turnstileContainerRef.current || !(window as any).turnstile) return;
-
-    try {
-      turnstileWidgetId.current = (window as any).turnstile.render(turnstileContainerRef.current, {
-        sitekey: siteKey,
-        theme: 'dark',
-        appearance: 'interaction-only', // invisible unless needed
-        callback: (token: string) => setTurnstileToken(token),
-        'expired-callback': () => setTurnstileToken(null),
-        'error-callback': () => setTurnstileToken(null),
-      });
-    } catch {
-      // Widget error fallback
-    }
-
-    return () => {
-      if (turnstileWidgetId.current && (window as any).turnstile) {
-        try {
-          (window as any).turnstile.remove(turnstileWidgetId.current);
-        } catch {
-          // Cleanup error ignored
-        }
-        turnstileWidgetId.current = null;
-      }
-    };
-  }, [isOpen, step, turnstileReady]);
-
-  // Clean widget on close
-  useEffect(() => {
-    if (!isOpen && turnstileWidgetId.current && (window as any).turnstile) {
-      try {
-        (window as any).turnstile.remove(turnstileWidgetId.current);
-      } catch {
-        // Cleanup error ignored
-      }
-      turnstileWidgetId.current = null;
-      setTurnstileToken(null);
-    }
-  }, [isOpen]);
-
   // Strictly reset to step 1 whenever wallet is disconnected or modal is closed
   useEffect(() => {
     if (!walletAddress) {
@@ -145,20 +93,10 @@ export default function OnboardingModal({
   const handleConnect = async () => {
     setConnectingLocal(true);
     setLocalError(null);
-    const res = await onConnectWallet(turnstileToken ?? undefined);
+    const res = await onConnectWallet();
     setConnectingLocal(false);
     if (!res.success) {
       setLocalError(res.error || 'Connection failed. Try again.');
-      // Safely reset Turnstile so user can retry
-      if (turnstileWidgetId.current && (window as any).turnstile) {
-        try {
-          (window as any).turnstile.reset(turnstileWidgetId.current);
-        } catch {
-          try { (window as any).turnstile.remove(turnstileWidgetId.current); } catch {}
-          turnstileWidgetId.current = null;
-        }
-        setTurnstileToken(null);
-      }
     }
   };
 
@@ -182,20 +120,15 @@ export default function OnboardingModal({
       setHandleConnecting(false);
       if (res.success) {
         setHandleSuccess(true);
-        onCompleteTask('connectx', 50);
-        setTimeout(() => {
-          onClose();
-        }, 800);
+        // connectTwitter() already wrote to backend — no need to call onCompleteTask again
+        setTimeout(() => { onClose(); }, 800);
       } else {
         setLocalError(res.error || 'Failed to connect Twitter');
       }
     } else {
       setHandleConnecting(false);
       setHandleSuccess(true);
-      onCompleteTask('connectx', 50);
-      setTimeout(() => {
-        onClose();
-      }, 800);
+      setTimeout(() => { onClose(); }, 800);
     }
   };
 
@@ -286,18 +219,8 @@ export default function OnboardingModal({
                 ) : <>🔗 Connect &amp; Sign Wallet</>}
               </button>
               {(localError || connectError) && <p className="ob-error">{localError || connectError}</p>}
-
-              {/* Cloudflare Turnstile - invisible bot challenge mounts here */}
-              <div ref={turnstileContainerRef} style={{ marginTop: '8px' }} />
             </div>
           )}
-
-          {/* Cloudflare Turnstile script - loads once globally */}
-          <Script
-            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-            strategy="lazyOnload"
-            onLoad={() => setTurnstileReady(true)}
-          />
 
           {/* STEP 2 - Connect Twitter */}
           {effectiveStep === 2 && (

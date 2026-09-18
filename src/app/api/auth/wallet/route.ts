@@ -149,42 +149,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 7. Strict Cloudflare Turnstile bot challenge verification on NEW registrations
-    // Prevents automated headless scripts from mass-registering fake referee accounts
-    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-    const isDevTestBypass =
-      process.env.NODE_ENV !== 'production' && turnstileToken === 'DEV_TEST_PASS_TOKEN';
-
-    if (!isDemo && turnstileSecret && !isDevTestBypass) {
-      if (!turnstileToken || typeof turnstileToken !== 'string') {
-        return NextResponse.json(
-          { error: 'Bot verification required. Please refresh and try again.' },
-          { status: 403 }
-        );
-      }
-      try {
-        const cfRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            secret: turnstileSecret,
-            response: turnstileToken,
-            remoteip: realIp,
-          }),
-        });
-        const cfData = await cfRes.json();
-        if (!cfData.success) {
-          return NextResponse.json(
-            { error: 'Bot verification failed. Please refresh and try again.' },
-            { status: 403 }
-          );
-        }
-      } catch {
-        // If Cloudflare is unreachable, allow through (fail open) to not block legit users
-        console.warn('Turnstile verification unreachable - allowing request through');
-      }
-    }
-
     // 8. Generate unique referral code
     let refCodeCandidate = generateReferralCode();
     let collision = await usersCollection.findOne({ referralCode: refCodeCandidate });
@@ -313,7 +277,7 @@ export async function POST(req: NextRequest) {
       sessionToken,
       user: {
         address: newUser.address,
-        twitterHandle: newUser.twitterHandle,
+        twitterHandle: null,
         referralCode: newUser.referralCode,
         points: newUser.points,
         tasksDone: newUser.tasksDone,

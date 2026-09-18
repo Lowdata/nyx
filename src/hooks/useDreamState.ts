@@ -188,7 +188,7 @@ export function useDreamState() {
   }, [state.walletAddress, disconnectWallet]);
 
   // Connect and Sign Wallet: Authentic Web3 or Testnet Demo fallback
-  const connectAndSignWallet = useCallback(async (options?: { isDemo?: boolean; turnstileToken?: string }): Promise<{ success: boolean; error?: string }> => {
+  const connectAndSignWallet = useCallback(async (options?: { isDemo?: boolean }): Promise<{ success: boolean; error?: string }> => {
     setIsConnecting(true);
     setConnectError(null);
 
@@ -255,7 +255,6 @@ export function useDreamState() {
           message,
           refCode: refCodeFromUrl,
           isDemo,
-          turnstileToken: options?.turnstileToken,
         }),
       });
 
@@ -316,50 +315,96 @@ export function useDreamState() {
     }));
   }, [saveState]);
 
-  const completeTask = useCallback((taskId: string, pts: number) => {
+  const completeTask = useCallback(async (taskId: string, pts: number): Promise<{ success: boolean; error?: string }> => {
+    // 1. Optimistically mark task as done and award points in local state
     saveState((prev) => {
       if (prev.tasksDone[taskId]) return prev;
-      const nextPoints = Math.min(TARGET, prev.points + pts);
-
-      // Async sync to MongoDB tasks completion route with Session Token
-      if (prev.walletAddress && sessionToken) {
-        fetch('/api/tasks/complete', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken}`,
-          },
-          body: JSON.stringify({
-            address: prev.walletAddress,
-            taskId,
-          }),
-        }).catch(() => {
-          // Fallback sync
-          fetch('/api/user/sync', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${sessionToken}`,
-            },
-            body: JSON.stringify({
-              address: prev.walletAddress,
-              taskId,
-              taskPts: pts,
-            }),
-          }).catch(() => {});
-        });
-      }
-
       return {
         ...prev,
-        points: nextPoints,
+        points: Math.min(TARGET, prev.points + pts),
         tasksDone: {
           ...prev.tasksDone,
           [taskId]: true,
         },
       };
     });
-  }, [saveState, sessionToken]);
+
+    // 2. Identify token and address (with localStorage fallbacks)
+    let token = sessionToken;
+    let address = state.walletAddress;
+    if (typeof window !== 'undefined') {
+      if (!token) {
+        token = localStorage.getItem(SESSION_TOKEN_KEY);
+      }
+      if (!address) {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) address = JSON.parse(raw).walletAddress;
+        } catch {}
+      }
+    }
+
+    if (!address || !token) {
+      console.warn('[Tasks] Cannot sync to DB: missing wallet address or session token', { address, hasToken: !!token });
+      return { success: false, error: 'Wallet session not found' };
+    }
+
+    console.log(`[Tasks] Syncing completion to DB: task="${taskId}", wallet="${address}"`);
+
+    try {
+      const res = await fetch('/api/tasks/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          address,
+          taskId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.warn(`[Tasks] /api/tasks/complete error for "${taskId}":`, data.error || res.statusText);
+        // Fallback to user sync endpoint
+        await fetch('/api/user/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            address,
+            taskId,
+            taskPts: pts,
+          }),
+        }).catch(() => {});
+        return { success: false, error: data.error || 'Failed to sync task' };
+      }
+
+      console.log(`[Tasks] DB confirmed task completion for "${taskId}". Points awarded: ${data.ptsAwarded ?? pts}`);
+
+      // Authoritatively sync user points and tasksDone from DB response
+      if (data.user) {
+        const u = data.user;
+        saveState((prev) => ({
+          ...prev,
+          points: Math.min(TARGET, u.points ?? prev.points),
+          tasksDone: {
+            ...prev.tasksDone,
+            ...(u.tasksDone || {}),
+            [taskId]: true,
+          },
+        }));
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error(`[Tasks] Network error completing task "${taskId}":`, err);
+      return { success: false, error: 'Network error' };
+    }
+  }, [saveState, sessionToken, state.walletAddress]);
 
   const spinWheel = useCallback((wonPoints: number) => {
     saveState((prev) => {

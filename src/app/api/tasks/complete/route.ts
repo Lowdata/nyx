@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedAddress = address.toLowerCase();
+    console.log(`[API /tasks/complete] Received task "${taskId}" for wallet ${normalizedAddress}`);
 
     // 3. Ensure Session Matches Address
     if (session.address !== normalizedAddress) {
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (existingCompletion || (user.tasksDone && user.tasksDone[taskId])) {
+      console.log(`[API /tasks/complete] Task "${taskId}" was already completed for ${normalizedAddress}`);
       return NextResponse.json({
         success: true,
         message: 'Task already completed',
@@ -130,6 +132,7 @@ export async function POST(req: NextRequest) {
       await userTasksCol.insertOne(completionRecord);
     } catch {
       // Compound index collision indicates concurrent claim
+      console.log(`[API /tasks/complete] Task "${taskId}" concurrent claim collision for ${normalizedAddress}`);
       return NextResponse.json({
         success: true,
         message: 'Task already completed',
@@ -154,6 +157,8 @@ export async function POST(req: NextRequest) {
       }
     );
 
+    console.log(`[API /tasks/complete] Saved to DB (${db.databaseName}): task "${taskId}" for ${normalizedAddress} (+${pointsToAward} pts, total: ${newPoints} pts)`);
+
     const updatedUser = await usersCol.findOne({ address: normalizedAddress });
 
     return NextResponse.json({
@@ -163,7 +168,7 @@ export async function POST(req: NextRequest) {
       user: updatedUser,
     });
   } catch (error) {
-    console.error('Task complete error:', error);
+    console.error('[API /tasks/complete] Error recording task completion:', error);
     return NextResponse.json({ error: 'Failed to record task completion' }, { status: 500 });
   }
 }

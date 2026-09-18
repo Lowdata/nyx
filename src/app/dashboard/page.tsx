@@ -108,9 +108,10 @@ export default function Home() {
     }
   }, [isLoaded, state.points, state.fcfsCelebrated, markFcfsCelebrated]);
 
-  const handleTaskComplete = (taskId: string, pts: number) => {
-    completeTask(taskId, pts);
+  const handleTaskComplete = async (taskId: string, pts: number) => {
+    const res = await completeTask(taskId, pts);
     setSparkleKey((k) => k + 1);
+    return res;
   };
 
   const handleSpinWin = (pts: number) => {
@@ -152,9 +153,9 @@ export default function Home() {
     disconnectWallet();
   };
 
-  const handleConnect = async (turnstileToken?: string) => {
+  const handleConnect = async () => {
     userDisconnectedRef.current = false;
-    const res = await connectAndSignWallet({ turnstileToken });
+    const res = await connectAndSignWallet();
     if (res.success) {
       setSparkleKey((k) => k + 1);
     }

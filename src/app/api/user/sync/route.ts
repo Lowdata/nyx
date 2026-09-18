@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
 
       updateDoc[`tasksDone.${taskId}`] = true;
       ptsToAdd += VALID_TASKS[taskId];
+      console.log(`[API /user/sync] Saved to DB: task "${taskId}" for ${normalizedAddress} (+${VALID_TASKS[taskId]} pts)`);
 
       // Record in userTasks collection
       const userTasksCollection = db.collection('userTasks');

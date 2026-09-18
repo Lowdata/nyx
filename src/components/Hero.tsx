@@ -9,7 +9,7 @@ interface HeroProps {
   points: number;
   pct: number;
   tasksDone?: Record<string, boolean>;
-  onCompleteTask: (taskId: string, pts: number) => void;
+  onCompleteTask: (taskId: string, pts: number) => Promise<unknown> | void;
   referralCode: string | null;
   referralsCount?: number;
   onConnectWallet?: () => void;
