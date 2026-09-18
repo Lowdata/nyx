@@ -30,7 +30,6 @@ export default function LandingNav() {
         <div className="land-nav-links" aria-hidden={menuOpen}>
           <Link href="/">Home</Link>
           <a href="#world">The World</a>
-          <a href="#swap">Characters</a>
           <a href="#process">How it works</a>
           <a href="#airdrop">$NYX</a>
         </div>
@@ -73,7 +72,6 @@ export default function LandingNav() {
         <div className="land-nav-mobile" role="dialog" aria-label="Mobile navigation">
           <Link href="/" onClick={() => setMenuOpen(false)}>Home</Link>
           <a href="#world" onClick={() => setMenuOpen(false)}>The World</a>
-          <a href="#swap" onClick={() => setMenuOpen(false)}>Characters</a>
           <a href="#process" onClick={() => setMenuOpen(false)}>How it works</a>
           <a href="#airdrop" onClick={() => setMenuOpen(false)}>$NYX</a>
           <Link href="/dashboard" className="land-nav-cta land-nav-cta--full" onClick={() => setMenuOpen(false)}>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 
 const SYMBOLS = [
   {
@@ -44,11 +43,43 @@ function useInView(threshold = 0.1) {
   return { ref, inView };
 }
 
+const IMAGES = [
+  '/myth.webp',
+  ...Array.from({ length: 30 }, (_, i) => `/${i + 1}.webp`),
+];
+
 export default function WorldSection() {
   const { ref: textRef, inView: textIn } = useInView();
   const { ref: symbolsRef, inView: symbolsIn } = useInView();
   const { ref: wheelRef, inView: wheelIn } = useInView();
   const [activeNode, setActiveNode] = useState(0);
+
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [isFading, setIsFading] = useState(false);
+
+  // Preload all 30 optimized webp images + myth art on mount for instantaneous rendering
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    IMAGES.forEach((src) => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }, []);
+
+  const handleReroll = () => {
+    if (isFading) return;
+    setIsFading(true);
+
+    let nextIdx = currentIdx;
+    while (nextIdx === currentIdx) {
+      nextIdx = Math.floor(Math.random() * IMAGES.length);
+    }
+
+    setTimeout(() => {
+      setCurrentIdx(nextIdx);
+      setIsFading(false);
+    }, 180);
+  };
 
   useEffect(() => {
     if (!wheelIn) return;
@@ -85,18 +116,65 @@ export default function WorldSection() {
             </p>
           </div>
 
-          <div className={`land-lore-art ${textIn ? 'land-reveal' : ''}`} style={{ transitionDelay: '0.2s' }}>
-            <div className="land-photo-frame">
+          <div className={`land-lore-art ${textIn ? 'land-reveal' : ''}`} style={{ transitionDelay: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div
+              className="land-photo-frame"
+              onClick={handleReroll}
+              style={{ cursor: isFading ? 'default' : 'pointer' }}
+              title="Click to view another look"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleReroll(); } }}
+              aria-label="Click to view next character look"
+            >
               <div className="land-tape land-tape-tl" aria-hidden="true" />
               <div className="land-tape land-tape-tr" aria-hidden="true" />
-              <Image
-                src="/myth.webp"
-                alt="Nyx myth art"
-                width={480}
-                height={480}
-                style={{ width: '100%', height: 'auto', display: 'block', filter: 'saturate(0.95)' }}
-              />
-              <p className="land-photo-cap">the myth · still half asleep</p>
+              <div style={{ position: 'relative', overflow: 'hidden', background: '#0a0d16', borderRadius: '2px' }}>
+                <img
+                  src={IMAGES[currentIdx]}
+                  alt="Nyx character look"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    aspectRatio: '1 / 1',
+                    objectFit: 'cover',
+                    display: 'block',
+                    filter: 'saturate(0.95)',
+                    transition: 'opacity 0.18s ease, transform 0.18s ease',
+                    opacity: isFading ? 0.2 : 1,
+                    transform: isFading ? 'scale(0.97)' : 'scale(1)',
+                  }}
+                />
+              </div>
+              <p className="land-photo-cap">
+                {currentIdx === 0 && IMAGES[0] === '/myth.webp'
+                  ? 'the myth · still half asleep'
+                  : `Nyx look #${currentIdx} · hand-sketched`}
+              </p>
+            </div>
+
+            {/* Randomizer Action Button */}
+            <div style={{ marginTop: '22px', textAlign: 'center' }}>
+              <button
+                type="button"
+                className="land-btn-primary"
+                id="rerollBtn"
+                onClick={handleReroll}
+                disabled={isFading}
+                style={{
+                  fontSize: '0.95rem',
+                  padding: '12px 28px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: isFading ? 'default' : 'pointer',
+                  boxShadow: '0 8px 24px -4px rgba(240, 217, 160, 0.25)',
+                }}
+                title="Click to view another image"
+              >
+                <span>Change image</span>
+                <span aria-hidden="true">✦</span>
+              </button>
             </div>
           </div>
         </div>
