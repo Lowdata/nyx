@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if ((referrer.referralsCount || 0) >= 30) {
+      return NextResponse.json(
+        { valid: false, error: 'This invite code has reached its maximum limit of 30 referrals.' },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({
       valid: true,
       code: cleanCode,

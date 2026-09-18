@@ -191,55 +191,83 @@ export async function POST(req: NextRequest) {
           // Max referral limit: 30
           const currentRefCount = referrer.referralsCount || 0;
 
-          // OPTION 3 RULE:
-          // If different IP OR first friend from same IP (sameIpRefCount < 1): Award immediately!
-          // If 2nd+ wallet from same IP: Hold in pending (requires linking unique X account to qualify)
-          const allowImmediate = (!sameIp || sameIpRefCount < 1) && currentRefCount < 30;
-
-          if (allowImmediate) {
-            const nextRefCount = currentRefCount + 1;
-            let milestoneBonus = 0;
-            // Calibrated Milestones: 1 friend (+20), 5 friends (+50), 15 friends (+100), 30 friends (+500)
-            if (nextRefCount === 1) milestoneBonus = 20;
-            else if (nextRefCount === 5) milestoneBonus = 50;
-            else if (nextRefCount === 15) milestoneBonus = 100;
-            else if (nextRefCount === 30) milestoneBonus = 500;
-
-            const totalAward = 10 + milestoneBonus;
-            const referrerNewPoints = Math.min(2200, (referrer.points || 0) + totalAward);
-
-            const historyEntry = {
-              id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-              address: `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}`,
-              timestamp: Date.now(),
-              pts: totalAward,
-            };
-
-            await usersCollection.updateOne(
-              { referralCode: cleanRef },
-              {
-                $set: { points: referrerNewPoints },
-                $inc: {
-                  referralsCount: 1,
-                  referralPoints: totalAward,
-                },
-                $push: {
-                  referralHistory: {
-                    $each: [historyEntry],
-                    $slice: -20,
-                  },
-                },
-              } as any
-            );
-          } else {
-            // Subsequent wallet on same IP: held in pending until verified via unique X account
-            referralPending = true;
-            logger.info('Anti-Sybil', `Same-IP referral held in pending`, {
-              referrerCode: cleanRef,
-              ip: realIp,
-              sameIp,
-              sameIpRefCount,
+          if (currentRefCount >= 30) {
+            logger.info('Referrals:cap', `Referrer ${cleanRef} already reached max 30 referrals`, {
+              referee: normalizedAddress,
+              referrer: referrer.address,
+              currentRefCount,
             });
+            // Referrer has already maxed out 30 referrals, do not queue pending or award referrer
+            referralPending = false;
+          } else {
+            // OPTION 3 RULE:
+            // If different IP OR first friend from same IP (sameIpRefCount < 1): Award immediately!
+            // If 2nd+ wallet from same IP: Hold in pending (requires linking unique X account to qualify)
+            const allowImmediate = !sameIp || sameIpRefCount < 1;
+
+            if (allowImmediate) {
+              // Atomically reserve 1 of the 30 referral slots (guarantees referralsCount never exceeds 30)
+              const updatedReferrer = await usersCollection.findOneAndUpdate(
+                {
+                  referralCode: cleanRef,
+                  $or: [{ referralsCount: { $lt: 30 } }, { referralsCount: { $exists: false } }],
+                },
+                {
+                  $inc: { referralsCount: 1 },
+                },
+                { returnDocument: 'after' }
+              );
+
+              if (updatedReferrer) {
+                const nextRefCount = updatedReferrer.referralsCount || 1;
+                let milestoneBonus = 0;
+                // Calibrated Milestones: 1 friend (+20), 5 friends (+50), 15 friends (+100), 30 friends (+500)
+                if (nextRefCount === 1) milestoneBonus = 20;
+                else if (nextRefCount === 5) milestoneBonus = 50;
+                else if (nextRefCount === 15) milestoneBonus = 100;
+                else if (nextRefCount === 30) milestoneBonus = 500;
+
+                const totalAward = 10 + milestoneBonus;
+                const historyEntry = {
+                  id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                  address: `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}`,
+                  timestamp: Date.now(),
+                  pts: totalAward,
+                };
+
+                // Atomically award points and push history (no lost updates)
+                await usersCollection.updateOne(
+                  { referralCode: cleanRef },
+                  {
+                    $inc: {
+                      points: totalAward,
+                      referralPoints: totalAward,
+                    },
+                    $push: {
+                      referralHistory: {
+                        $each: [historyEntry],
+                        $slice: -20,
+                      },
+                    },
+                  } as any
+                );
+
+                // Atomically clamp referrer points to 2200
+                await usersCollection.updateOne(
+                  { referralCode: cleanRef, points: { $gt: 2200 } },
+                  { $set: { points: 2200 } }
+                );
+              }
+            } else {
+              // Subsequent wallet on same IP: held in pending until verified via unique X account
+              referralPending = true;
+              logger.info('Anti-Sybil', `Same-IP referral held in pending`, {
+                referrerCode: cleanRef,
+                ip: realIp,
+                sameIp,
+                sameIpRefCount,
+              });
+            }
           }
         }
       }

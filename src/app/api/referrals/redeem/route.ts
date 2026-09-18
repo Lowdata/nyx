@@ -120,12 +120,31 @@ export async function POST(req: NextRequest) {
     const currentRefCount = referrer.referralsCount || 0;
     if (currentRefCount >= 30) {
       return NextResponse.json(
-        { error: 'This referral link has reached its maximum use limit (30 referrals).' },
+        { error: 'This referral link has reached its maximum use limit of 30 referrals.' },
         { status: 400 }
       );
     }
 
-    // 4. Atomic conditional update to prevent double redemption race conditions
+    // 4. Atomically reserve 1 of the 30 referral slots on the referrer
+    const updatedReferrer = await usersCollection.findOneAndUpdate(
+      {
+        referralCode: cleanCode,
+        $or: [{ referralsCount: { $lt: 30 } }, { referralsCount: { $exists: false } }],
+      },
+      {
+        $inc: { referralsCount: 1 },
+      },
+      { returnDocument: 'after' }
+    );
+
+    if (!updatedReferrer) {
+      return NextResponse.json(
+        { error: 'This referral link has reached its maximum use limit of 30 referrals.' },
+        { status: 400 }
+      );
+    }
+
+    // 5. Atomically set referredByCode on the referee
     const updateResult = await usersCollection.updateOne(
       { address: normalizedAddress, referredByCode: { $in: [null, undefined] } },
       {
@@ -135,14 +154,25 @@ export async function POST(req: NextRequest) {
     );
 
     if (updateResult.modifiedCount === 0) {
+      // Revert reserved slot if referee already had a code
+      await usersCollection.updateOne(
+        { referralCode: cleanCode },
+        { $inc: { referralsCount: -1 } }
+      );
       return NextResponse.json(
         { error: 'Invite code has already been redeemed.' },
         { status: 400 }
       );
     }
 
-    // 5. Reward referrer atomically with cap & milestone bonuses
-    const nextRefCount = currentRefCount + 1;
+    // Clamp referee points to 2200
+    await usersCollection.updateOne(
+      { address: normalizedAddress, points: { $gt: 2200 } },
+      { $set: { points: 2200 } }
+    );
+
+    // 6. Reward referrer atomically with exact monotonic milestone bonuses
+    const nextRefCount = updatedReferrer.referralsCount || 1;
     let milestoneBonus = 0;
     if (nextRefCount === 1) milestoneBonus = 20;
     else if (nextRefCount === 5) milestoneBonus = 50;
@@ -150,7 +180,6 @@ export async function POST(req: NextRequest) {
     else if (nextRefCount === 30) milestoneBonus = 500;
 
     const totalAward = 10 + milestoneBonus;
-    const referrerNewPoints = Math.min(2200, (referrer.points || 0) + totalAward);
 
     const historyEntry = {
       id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -162,9 +191,8 @@ export async function POST(req: NextRequest) {
     await usersCollection.updateOne(
       { referralCode: cleanCode },
       {
-        $set: { points: referrerNewPoints },
         $inc: {
-          referralsCount: 1,
+          points: totalAward,
           referralPoints: totalAward,
         },
         $push: {
@@ -174,6 +202,11 @@ export async function POST(req: NextRequest) {
           },
         },
       } as any
+    );
+
+    await usersCollection.updateOne(
+      { referralCode: cleanCode, points: { $gt: 2200 } },
+      { $set: { points: 2200 } }
     );
 
     logger.info('Referrals:redeem', `Redeemed invite code "${cleanCode}" for ${normalizedAddress} (+10 pts)`, {

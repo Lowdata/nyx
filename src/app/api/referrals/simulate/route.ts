@@ -48,6 +48,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found. Connect wallet first.' }, { status: 404 });
     }
 
+    const currentRefCount = user.referralsCount || 0;
+    if (currentRefCount >= 30) {
+      return NextResponse.json(
+        { error: 'Maximum referrals reached (30 referrals cap).' },
+        { status: 400 }
+      );
+    }
+
     const randomHex = Math.random().toString(16).substring(2, 6);
     const mockAddress = `0x${randomHex}...${Math.random().toString(16).substring(2, 6)}`;
     const pts = 10; // Dev simulation: 10 pts (matches calibrated referral value)
@@ -59,14 +67,14 @@ export async function POST(req: NextRequest) {
       pts,
     };
 
-    const currentPoints = user.points || 0;
-    const newPoints = Math.min(MAX_TARGET_POINTS, currentPoints + pts);
-
-    await usersCollection.updateOne(
-      { address: normalizedAddress },
+    const updateResult = await usersCollection.updateOne(
       {
-        $set: { points: newPoints },
+        address: normalizedAddress,
+        $or: [{ referralsCount: { $lt: 30 } }, { referralsCount: { $exists: false } }],
+      },
+      {
         $inc: {
+          points: pts,
           referralsCount: 1,
           referralPoints: pts,
         },
@@ -77,6 +85,18 @@ export async function POST(req: NextRequest) {
           },
         },
       } as any
+    );
+
+    if (updateResult.modifiedCount === 0) {
+      return NextResponse.json(
+        { error: 'Maximum referrals reached (30 referrals cap).' },
+        { status: 400 }
+      );
+    }
+
+    await usersCollection.updateOne(
+      { address: normalizedAddress, points: { $gt: MAX_TARGET_POINTS } },
+      { $set: { points: MAX_TARGET_POINTS } }
     );
 
     return NextResponse.json({

@@ -346,7 +346,7 @@ export function useDreamState() {
 
     if (!address || !token) {
       console.warn('[Tasks] Cannot sync to DB: missing wallet address or session token', { address, hasToken: !!token });
-      return { success: false, error: 'Wallet session not found' };
+      return { success: false, error: 'Please connect and sign your wallet first to record quest points.' };
     }
 
     console.log(`[Tasks] Syncing completion to DB: task="${taskId}", wallet="${address}"`);
@@ -367,30 +367,17 @@ export function useDreamState() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         console.warn(`[Tasks] /api/tasks/complete error for "${taskId}":`, data.error || res.statusText);
-        // Fallback to user sync endpoint
-        await fetch('/api/user/sync', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            address,
-            taskId,
-            taskPts: pts,
-          }),
-        }).catch(() => {});
-        return { success: false, error: data.error || 'Failed to sync task' };
+        return { success: false, error: data.error || 'Failed to verify quest completion.' };
       }
 
       console.log(`[Tasks] DB confirmed task completion for "${taskId}". Points awarded: ${data.ptsAwarded ?? pts}`);
 
-      // Authoritatively sync user points and tasksDone from DB response
+      // Authoritatively sync user points and tasksDone from DB response (never rolling back concurrent progress)
       if (data.user) {
         const u = data.user;
         saveState((prev) => ({
           ...prev,
-          points: Math.min(TARGET, u.points ?? prev.points),
+          points: Math.min(TARGET, Math.max(prev.points, u.points ?? prev.points)),
           tasksDone: {
             ...prev.tasksDone,
             ...(u.tasksDone || {}),
@@ -402,34 +389,56 @@ export function useDreamState() {
       return { success: true };
     } catch (err) {
       console.error(`[Tasks] Network error completing task "${taskId}":`, err);
-      return { success: false, error: 'Network error' };
+      return { success: false, error: 'Network error connecting to server. Please try again.' };
     }
   }, [saveState, sessionToken, state.walletAddress]);
 
-  const spinWheel = useCallback((wonPoints: number) => {
-    saveState((prev) => {
-      const nextPoints = Math.min(TARGET, prev.points + wonPoints);
-      if (prev.walletAddress && sessionToken) {
-        fetch('/api/user/sync', {
+  const spinWheel = useCallback(async (wonPoints: number) => {
+    let token = sessionToken;
+    let address = state.walletAddress;
+    if (typeof window !== 'undefined') {
+      if (!token) token = localStorage.getItem(SESSION_TOKEN_KEY);
+      if (!address) {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) address = JSON.parse(raw).walletAddress;
+        } catch {}
+      }
+    }
+
+    saveState((prev) => ({
+      ...prev,
+      lastSpinAt: Date.now(),
+      points: Math.min(TARGET, prev.points + wonPoints),
+    }));
+
+    if (address && token) {
+      try {
+        const res = await fetch('/api/user/sync', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken}`,
+            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({
-            address: prev.walletAddress,
+            address,
             spinPoints: wonPoints,
           }),
-        }).catch(() => {});
+        });
+        const data = await res.json();
+        if (data.success && data.user) {
+          const u = data.user;
+          saveState((prev) => ({
+            ...prev,
+            points: Math.min(TARGET, Math.max(prev.points, u.points ?? prev.points)),
+            lastSpinAt: u.lastSpinAt || prev.lastSpinAt,
+          }));
+        }
+      } catch (err) {
+        console.warn('[Spin] Failed to sync spin to DB:', err);
       }
-
-      return {
-        ...prev,
-        lastSpinAt: Date.now(),
-        points: nextPoints,
-      };
-    });
-  }, [saveState, sessionToken]);
+    }
+  }, [saveState, sessionToken, state.walletAddress]);
 
   const getRemainingSpinMs = useCallback((): number => {
     if (!state.lastSpinAt) return 0;
@@ -461,6 +470,10 @@ export function useDreamState() {
 
     if (state.tweetClaimed) {
       return { success: false, error: 'You have already submitted a tweet.' };
+    }
+
+    if (!state.walletAddress || !sessionToken) {
+      return { success: false, error: 'Please connect and sign your wallet first to submit a prophecy.' };
     }
 
     const alreadySubmitted = state.submittedTweetUrls.some(
@@ -603,7 +616,11 @@ export function useDreamState() {
     [state.referredByCode, state.referralCode, state.walletAddress, sessionToken, saveState]
   );
 
-  const simulateFriendReferral = useCallback(async (): Promise<{ success: boolean; pts: number; address: string }> => {
+  const simulateFriendReferral = useCallback(async (): Promise<{ success: boolean; pts: number; address: string; error?: string }> => {
+    if ((state.referralsCount || 0) >= 30) {
+      return { success: false, pts: 0, address: '', error: 'Maximum referrals reached (30 referrals cap).' };
+    }
+
     const randomHex = Math.random().toString(16).substring(2, 6);
     let mockAddress = `0x${randomHex}...${Math.random().toString(16).substring(2, 6)}`;
     const ptsAwarded = 10; // Matches calibrated referral value
@@ -619,16 +636,19 @@ export function useDreamState() {
           body: JSON.stringify({ address: state.walletAddress }),
         });
         const data = await res.json();
-        if (data.success && data.address) {
+        if (!res.ok || !data.success) {
+          return { success: false, pts: 0, address: '', error: data.error || 'Simulation failed' };
+        }
+        if (data.address) {
           mockAddress = data.address;
         }
       } catch {
-        // Fallback to local
+        return { success: false, pts: 0, address: '', error: 'Network error simulating referral' };
       }
     }
 
     saveState((prev) => {
-      const newCount = (prev.referralsCount || 0) + 1;
+      const newCount = Math.min(30, (prev.referralsCount || 0) + 1);
       const newReferralPts = (prev.referralPoints || 0) + ptsAwarded;
       const historyItem = {
         id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -647,7 +667,7 @@ export function useDreamState() {
     });
 
     return { success: true, pts: ptsAwarded, address: mockAddress };
-  }, [state.walletAddress, sessionToken, saveState]);
+  }, [state.referralsCount, state.walletAddress, sessionToken, saveState]);
 
   const connectTwitter = useCallback(async (rawHandle: string): Promise<{ success: boolean; error?: string }> => {
     const clean = rawHandle.trim().replace(/^@/, '');
@@ -658,44 +678,60 @@ export function useDreamState() {
       return { success: false, error: 'Handle can only contain letters, numbers, and underscores (max 15 characters).' };
     }
 
-    if (state.walletAddress && sessionToken) {
-      try {
-        const res = await fetch('/api/user/sync', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken}`,
-          },
-          body: JSON.stringify({
-            address: state.walletAddress,
-            twitterHandle: clean,
-            taskId: 'connectx',
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          return { success: false, error: data.error || 'Failed to link Twitter account' };
-        }
-      } catch {
-        // Fallback to local state save
-      }
+    if (!state.walletAddress || !sessionToken) {
+      return { success: false, error: 'Please connect and sign your wallet first before linking X.' };
     }
 
-    saveState((prev) => {
-      const alreadyDone = prev.tasksDone.connectx;
-      const ptsToAdd = alreadyDone ? 0 : 50;
-      return {
-        ...prev,
-        twitterHandle: clean,
-        points: Math.min(TARGET, prev.points + ptsToAdd),
-        tasksDone: {
-          ...prev.tasksDone,
-          connectx: true,
+    try {
+      const res = await fetch('/api/user/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`,
         },
-      };
-    });
+        body: JSON.stringify({
+          address: state.walletAddress,
+          twitterHandle: clean,
+          taskId: 'connectx',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Failed to link Twitter account' };
+      }
 
-    return { success: true };
+      if (data.user) {
+        const u = data.user;
+        saveState((prev) => ({
+          ...prev,
+          twitterHandle: clean,
+          points: Math.min(TARGET, Math.max(prev.points, u.points ?? prev.points)),
+          tasksDone: {
+            ...prev.tasksDone,
+            ...(u.tasksDone || {}),
+            connectx: true,
+          },
+        }));
+      } else {
+        saveState((prev) => {
+          const alreadyDone = prev.tasksDone.connectx;
+          const ptsToAdd = alreadyDone ? 0 : 50;
+          return {
+            ...prev,
+            twitterHandle: clean,
+            points: Math.min(TARGET, prev.points + ptsToAdd),
+            tasksDone: {
+              ...prev.tasksDone,
+              connectx: true,
+            },
+          };
+        });
+      }
+
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Network error linking Twitter. Please check connection and try again.' };
+    }
   }, [state.walletAddress, sessionToken, saveState]);
 
   const markFcfsCelebrated = useCallback(() => {

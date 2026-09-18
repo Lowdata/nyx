@@ -121,29 +121,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 6. Record Completion in userTasks Collection
-    const completionRecord = {
-      address: normalizedAddress,
-      taskId,
-      pts: pointsToAward,
-      completedAt: Date.now(),
-    };
-
-    try {
-      await userTasksCol.insertOne(completionRecord);
-    } catch {
-      // Compound index collision indicates concurrent claim
-      logger.info('Tasks:complete', `Task "${taskId}" concurrent claim collision`, { address: normalizedAddress, taskId });
-      return NextResponse.json({
-        success: true,
-        message: 'Task already completed',
-        taskId,
-        alreadyCompleted: true,
-        user,
-      });
-    }
-
-    // 7. Atomically Update User Points & tasksDone Map (prevents concurrent clobbering)
+    // 6. Atomically Update User Points & tasksDone Map (primary source of truth)
     const updateResult = await usersCol.updateOne(
       {
         address: normalizedAddress,
@@ -162,6 +140,7 @@ export async function POST(req: NextRequest) {
 
     if (updateResult.modifiedCount === 0) {
       // Task was already marked completed concurrently
+      logger.info('Tasks:complete', `Task "${taskId}" was already completed concurrently`, { address: normalizedAddress, taskId });
       const currentUser = await usersCol.findOne({ address: normalizedAddress });
       return NextResponse.json({
         success: true,
@@ -170,6 +149,18 @@ export async function POST(req: NextRequest) {
         alreadyCompleted: true,
         user: currentUser,
       });
+    }
+
+    // 7. Record Completion in userTasks Collection (Audit log, non-blocking)
+    try {
+      await userTasksCol.insertOne({
+        address: normalizedAddress,
+        taskId,
+        pts: pointsToAward,
+        completedAt: Date.now(),
+      });
+    } catch (auditErr) {
+      logger.warn('Tasks:complete', `Audit log insert skipped for "${taskId}" (non-critical)`, { address: normalizedAddress, error: auditErr });
     }
 
     // Atomically clamp points if they exceed MAX_TARGET_POINTS

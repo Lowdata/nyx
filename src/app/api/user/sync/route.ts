@@ -78,58 +78,87 @@ export async function POST(req: NextRequest) {
     const updateDoc: Record<string, unknown> = {};
     let ptsToAdd = 0;
 
-    // 3. Secure Server-Enforced Task Processing
+    // 3. Secure Server-Enforced Task Processing (Atomic)
     if (taskId && typeof taskId === 'string') {
       if (!(taskId in VALID_TASKS)) {
         return NextResponse.json({ error: 'Invalid quest task ID' }, { status: 400 });
       }
 
-      // Verify idempotency: do not award if already done
-      if (user.tasksDone && user.tasksDone[taskId]) {
-        return NextResponse.json({
-          success: true,
-          message: 'Task already completed',
-          user,
-        });
-      }
-
-      updateDoc[`tasksDone.${taskId}`] = true;
-      ptsToAdd += VALID_TASKS[taskId];
-      logger.info('DB:sync', `Saved task to DB: "${taskId}" (+${VALID_TASKS[taskId]} pts)`, { address: normalizedAddress, taskId });
-
-      // Record in userTasks collection
-      const userTasksCollection = db.collection('userTasks');
-      try {
-        await userTasksCollection.insertOne({
+      const taskPts = VALID_TASKS[taskId];
+      const taskResult = await usersCollection.updateOne(
+        {
           address: normalizedAddress,
-          taskId,
-          pts: VALID_TASKS[taskId],
-          completedAt: Date.now(),
-        });
-      } catch {
-        // Continue if already recorded
+          [`tasksDone.${taskId}`]: { $ne: true },
+        },
+        {
+          $set: { [`tasksDone.${taskId}`]: true },
+          $inc: { points: taskPts },
+        }
+      );
+
+      if (taskResult.modifiedCount > 0) {
+        logger.info('DB:sync', `Saved task to DB: "${taskId}" (+${taskPts} pts)`, { address: normalizedAddress, taskId });
+        try {
+          await db.collection('userTasks').insertOne({
+            address: normalizedAddress,
+            taskId,
+            pts: taskPts,
+            completedAt: Date.now(),
+          });
+        } catch {
+          // Non-critical audit log
+        }
+        await usersCollection.updateOne(
+          { address: normalizedAddress, points: { $gt: MAX_TARGET_POINTS } },
+          { $set: { points: MAX_TARGET_POINTS } }
+        );
       }
     }
 
-    // 4. Secure Server-Enforced Spin Processing
+    // 4. Secure Server-Enforced Spin Processing (Atomic cooldown & point increment)
     if (typeof spinPoints === 'number' && spinPoints > 0) {
       if (!ALLOWED_SPIN_VALUES.has(spinPoints)) {
         return NextResponse.json({ error: 'Invalid spin prize value' }, { status: 400 });
       }
 
-      // Check 24-hour spin cooldown
-      if (user.lastSpinAt && Date.now() - user.lastSpinAt < SPIN_COOLDOWN_MS) {
+      const cooldownThreshold = Date.now() - SPIN_COOLDOWN_MS;
+      const now = Date.now();
+
+      // Atomically check cooldown and update lastSpinAt + increment points
+      const spinResult = await usersCollection.updateOne(
+        {
+          address: normalizedAddress,
+          $or: [
+            { lastSpinAt: null },
+            { lastSpinAt: { $exists: false } },
+            { lastSpinAt: { $lte: cooldownThreshold } },
+          ],
+        },
+        {
+          $set: { lastSpinAt: now },
+          $inc: { points: spinPoints },
+        }
+      );
+
+      if (spinResult.modifiedCount === 0) {
         return NextResponse.json(
           { error: 'Wheel cooldown active. You can spin once every 24 hours.' },
           { status: 400 }
         );
       }
 
-      updateDoc['lastSpinAt'] = Date.now();
-      ptsToAdd += spinPoints;
+      await usersCollection.updateOne(
+        { address: normalizedAddress, points: { $gt: MAX_TARGET_POINTS } },
+        { $set: { points: MAX_TARGET_POINTS } }
+      );
+
+      logger.info('DB:sync', `Awarded spin points atomically: +${spinPoints} pts`, {
+        address: normalizedAddress,
+        spinPoints,
+      });
     }
 
-    // 5. Secure Server-Enforced Tweet Verification & Global Deduplication
+    // 5. Secure Server-Enforced Tweet Verification & Global Deduplication (Atomic)
     if (tweetUrl && typeof tweetUrl === 'string') {
       const cleanUrl = tweetUrl.trim();
       let statusId = '';
@@ -148,16 +177,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid tweet URL format' }, { status: 400 });
       }
 
-      if (user.tweetClaimed) {
-        return NextResponse.json({ error: 'Tweet reward has already been claimed' }, { status: 400 });
-      }
-
       // Global circle check: ensure no other user has claimed this exact tweet URL or status ID
       const existingSubmission = await usersCollection.findOne({
         $or: [
           { submittedTweetUrls: cleanUrl },
           ...(statusId ? [{ submittedTweetIds: statusId }] : []),
         ],
+        address: { $ne: normalizedAddress },
       });
 
       if (existingSubmission) {
@@ -170,21 +196,37 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      updateDoc['tweetClaimed'] = true;
-      ptsToAdd += 50;
-
-      await usersCollection.updateOne(
-        { address: normalizedAddress },
+      const tweetClaimResult = await usersCollection.updateOne(
         {
+          address: normalizedAddress,
+          tweetClaimed: { $ne: true },
+        },
+        {
+          $set: { tweetClaimed: true },
+          $inc: { points: 50 },
           $addToSet: {
             submittedTweetUrls: cleanUrl,
             ...(statusId ? { submittedTweetIds: statusId } : {}),
           },
         } as any
       );
+
+      if (tweetClaimResult.modifiedCount === 0) {
+        return NextResponse.json({ error: 'Tweet reward has already been claimed' }, { status: 400 });
+      }
+
+      await usersCollection.updateOne(
+        { address: normalizedAddress, points: { $gt: MAX_TARGET_POINTS } },
+        { $set: { points: MAX_TARGET_POINTS } }
+      );
+
+      logger.info('DB:sync', `Awarded tweet reward atomically: +50 pts`, {
+        address: normalizedAddress,
+        tweetUrl: cleanUrl,
+      });
     }
 
-    // 6. Secure Server-Enforced Twitter Handle Connection
+    // 6. Secure Server-Enforced Twitter Handle Connection & Atomic Referral Unlock
     if (twitterHandle && typeof twitterHandle === 'string') {
       const cleanHandle = twitterHandle.trim().replace(/^@/, '');
       if (/^[a-zA-Z0-9_]{1,15}$/.test(cleanHandle)) {
@@ -201,14 +243,64 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        updateDoc['twitterHandle'] = cleanHandle;
+        // Atomically set twitterHandle and award connectx points if not already done
+        const connectxResult = await usersCollection.updateOne(
+          {
+            address: normalizedAddress,
+            'tasksDone.connectx': { $ne: true },
+          },
+          {
+            $set: {
+              twitterHandle: cleanHandle,
+              'tasksDone.connectx': true,
+            },
+            $inc: { points: VALID_TASKS['connectx'] || 50 },
+          }
+        );
 
-        // If this user was a pending same-IP referral, unlock the referrer reward now!
-        if (user.referralPending && user.referredByCode) {
-          const referrer = await usersCollection.findOne({ referralCode: user.referredByCode });
-          if (referrer && (referrer.referralsCount || 0) < 30) {
-            const currentRefCount = referrer.referralsCount || 0;
-            const nextRefCount = currentRefCount + 1;
+        if (connectxResult.modifiedCount > 0) {
+          try {
+            await db.collection('userTasks').insertOne({
+              address: normalizedAddress,
+              taskId: 'connectx',
+              pts: VALID_TASKS['connectx'] || 50,
+              completedAt: Date.now(),
+            });
+          } catch {
+            // non-critical audit log
+          }
+          await usersCollection.updateOne(
+            { address: normalizedAddress, points: { $gt: MAX_TARGET_POINTS } },
+            { $set: { points: MAX_TARGET_POINTS } }
+          );
+        } else {
+          await usersCollection.updateOne(
+            { address: normalizedAddress },
+            { $set: { twitterHandle: cleanHandle } }
+          );
+        }
+
+        // If this user was a pending same-IP referral, unlock the referrer reward atomically
+        const pendingLock = await usersCollection.updateOne(
+          { address: normalizedAddress, referralPending: true },
+          { $set: { referralPending: false } }
+        );
+
+        if (pendingLock.modifiedCount === 1 && user.referredByCode) {
+          // Atomically reserve slot on referrer enforcing 30 cap
+          const updatedReferrer = await usersCollection.findOneAndUpdate(
+            {
+              referralCode: user.referredByCode,
+              $or: [{ referralsCount: { $lt: 30 } }, { referralsCount: { $exists: false } }],
+            },
+            {
+              $inc: { referralsCount: 1 },
+            },
+            { returnDocument: 'after' }
+          );
+
+          if (updatedReferrer) {
+            const nextRefCount = updatedReferrer.referralsCount || 1;
             let milestoneBonus = 0;
             if (nextRefCount === 1) milestoneBonus = 20;
             else if (nextRefCount === 5) milestoneBonus = 50;
@@ -216,8 +308,6 @@ export async function POST(req: NextRequest) {
             else if (nextRefCount === 30) milestoneBonus = 500;
 
             const totalAward = 10 + milestoneBonus;
-            const referrerNewPoints = Math.min(2200, (referrer.points || 0) + totalAward);
-
             const historyEntry = {
               id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
               address: `${normalizedAddress.slice(0, 6)}...${normalizedAddress.slice(-4)}`,
@@ -228,9 +318,8 @@ export async function POST(req: NextRequest) {
             await usersCollection.updateOne(
               { referralCode: user.referredByCode },
               {
-                $set: { points: referrerNewPoints },
                 $inc: {
-                  referralsCount: 1,
+                  points: totalAward,
                   referralPoints: totalAward,
                 },
                 $push: {
@@ -241,48 +330,25 @@ export async function POST(req: NextRequest) {
                 },
               } as any
             );
-            updateDoc['referralPending'] = false;
+
+            await usersCollection.updateOne(
+              { referralCode: user.referredByCode, points: { $gt: 2200 } },
+              { $set: { points: 2200 } }
+            );
+
             logger.info('Anti-Sybil', `Pending referral unlocked via X connect (${cleanHandle})`, {
               referrerCode: user.referredByCode,
               twitterHandle: cleanHandle,
+              totalAward,
+              referralsCount: nextRefCount,
             });
-          }
-        }
-
-        if (!user.tasksDone?.connectx) {
-          updateDoc['tasksDone.connectx'] = true;
-          ptsToAdd += VALID_TASKS['connectx'] || 50;
-
-          const userTasksCollection = db.collection('userTasks');
-          try {
-            await userTasksCollection.insertOne({
-              address: normalizedAddress,
-              taskId: 'connectx',
-              pts: VALID_TASKS['connectx'] || 50,
-              completedAt: Date.now(),
-            });
-          } catch {
-            // Already recorded
           }
         }
       }
     }
 
-    // 7. Apply Atomic Updates
-    const currentPoints = user.points || 0;
-    const newPoints = Math.min(MAX_TARGET_POINTS, currentPoints + ptsToAdd);
-    if (ptsToAdd > 0) {
-      updateDoc['points'] = newPoints;
-    }
-
-    if (Object.keys(updateDoc).length > 0) {
-      await usersCollection.updateOne(
-        { address: normalizedAddress },
-        { $set: updateDoc }
-      );
-    }
-
     const updatedUser = await usersCollection.findOne({ address: normalizedAddress });
+    return NextResponse.json({ success: true, user: updatedUser });
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
     logger.error('User:sync', 'User sync error', error);

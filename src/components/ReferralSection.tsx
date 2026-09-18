@@ -96,9 +96,17 @@ export default function ReferralSection({
   };
 
   const handleSimulate = async () => {
+    if (referralsCount >= 30) {
+      setSimulationToast('Maximum referral cap reached (30 friends limit).');
+      setTimeout(() => setSimulationToast(null), 3500);
+      return;
+    }
     const res = await onSimulateReferral();
     if (res.success) {
       setSimulationToast(`Friend joined (${res.address})! +${res.pts} points added to meter.`);
+      setTimeout(() => setSimulationToast(null), 3500);
+    } else if ((res as { error?: string }).error) {
+      setSimulationToast((res as { error?: string }).error || 'Simulation failed');
       setTimeout(() => setSimulationToast(null), 3500);
     }
   };
@@ -107,7 +115,7 @@ export default function ReferralSection({
     { name: 'Dream Scout', count: 1, reward: '+20 pts bonus', icon: '🔭' },
     { name: 'Circle Weaver', count: 5, reward: '+50 pts & FCFS boost', icon: '🕸️' },
     { name: 'Harbinger', count: 15, reward: '+100 pts & FCFS priority', icon: '☀️' },
-    { name: "Nyx's Chosen", count: 30, reward: '+500 pts & Guaranteed (GTD) spot', icon: '👑' },
+    { name: "Nyx's Chosen", count: 30, reward: '+500 pts bonus (Max Circle Cap)', icon: '👑' },
   ];
 
   return (
@@ -265,10 +273,11 @@ export default function ReferralSection({
                       type="button"
                       className="btn ref-test-btn"
                       onClick={handleSimulate}
-                      title="Simulate a friend joining using your code to test live meter progression"
+                      disabled={referralsCount >= 30}
+                      title={referralsCount >= 30 ? 'Maximum referrals cap reached (30)' : 'Simulate a friend joining using your code to test live meter progression'}
                     >
                       <span>⚡</span>
-                      <span>Simulate invite (+10 pts)</span>
+                      <span>{referralsCount >= 30 ? 'Max Invites (30/30)' : 'Simulate invite (+10 pts)'}</span>
                     </button>
                   )}
                 </div>

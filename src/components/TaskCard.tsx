@@ -88,6 +88,7 @@ export default function TaskCard({
   const [tasks, setTasks] = useState<TaskItem[]>(DEFAULT_TASK_ITEMS);
   const [verifyingTasks, setVerifyingTasks] = useState<Record<string, boolean>>({});
   const [showInfo, setShowInfo] = useState(false);
+  const [feedbackToast, setFeedbackToast] = useState<{ message: string; isError: boolean } | null>(null);
   const [, setCopiedLink] = useState<string | null>(
     referralCode ? `https://nyx.gg/?ref=${referralCode}` : null
   );
@@ -95,6 +96,13 @@ export default function TaskCard({
   const tasksRef = useRef<TaskItem[]>(tasks);
   const onCompleteRef = useRef(onCompleteTask);
   const timeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = (message: string, isError = false) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setFeedbackToast({ message, isError });
+    toastTimeoutRef.current = setTimeout(() => setFeedbackToast(null), 4500);
+  };
 
   useEffect(() => {
     tasksRef.current = tasks;
@@ -108,6 +116,7 @@ export default function TaskCard({
   useEffect(() => {
     return () => {
       Object.values(timeoutsRef.current).forEach(clearTimeout);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     };
   }, []);
 
@@ -129,6 +138,13 @@ export default function TaskCard({
   const handleTaskClick = (task: TaskItem) => {
     if (task.id !== 'referral' && safeTasksDone[task.id]) return;
     if (verifyingTasks[task.id]) return;
+
+    // Guard: Prevent unauthenticated users from running quests without saving
+    if (task.id !== 'connect' && !safeTasksDone.connect) {
+      showToast('Please connect and sign your wallet first to begin quest rituals.', true);
+      if (onConnectWallet) onConnectWallet();
+      return;
+    }
 
     // Direct Action Execution
     if (task.id === 'connect') {
@@ -157,6 +173,7 @@ export default function TaskCard({
         // Clipboard fallback
       }
       setCopiedLink(shareUrl);
+      showToast('Summon link copied! Share on X to earn circle wake points.');
       if (typeof window !== 'undefined') {
         window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener,noreferrer');
       }
@@ -180,9 +197,17 @@ export default function TaskCard({
     timeoutsRef.current[task.id] = setTimeout(async () => {
       try {
         console.log(`[TaskCard] Verification complete for "${task.id}". Calling onCompleteTask...`);
-        await onCompleteRef.current(task.id, task.pts);
-      } catch (err) {
+        const res = await onCompleteRef.current(task.id, task.pts);
+        if (res && typeof res === 'object' && 'success' in res && !(res as { success: boolean }).success) {
+          const errMsg = (res as { error?: string }).error || `Could not verify ${task.title}.`;
+          showToast(errMsg, true);
+        } else {
+          showToast(`✦ ${task.title} verified! +${task.pts} wake points added!`, false);
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : `Failed to verify ${task.title}.`;
         console.error(`[TaskCard] Error completing task "${task.id}":`, err);
+        showToast(msg, true);
       } finally {
         setVerifyingTasks((prev) => {
           const next = { ...prev };
@@ -288,6 +313,42 @@ export default function TaskCard({
               Complete the quests below to push the meter into <strong>FCFS (600 pts)</strong> and <strong>Guaranteed (1,500 pts)</strong> mint tiers before Nyx awakes!
             </p>
           </div>
+        </div>
+      )}
+
+      {/* FEEDBACK TOAST */}
+      {feedbackToast && (
+        <div
+          className={`task-toast ${feedbackToast.isError ? 'task-toast-error' : 'task-toast-success'} animate-fade-in`}
+          style={{
+            margin: '0.4rem 1rem 0.6rem',
+            padding: '0.55rem 0.85rem',
+            borderRadius: '8px',
+            fontSize: '0.82rem',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: feedbackToast.isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+            border: feedbackToast.isError ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(34, 197, 94, 0.35)',
+            color: feedbackToast.isError ? '#fca5a5' : '#86efac',
+          }}
+        >
+          <span>{feedbackToast.message}</span>
+          <button
+            type="button"
+            onClick={() => setFeedbackToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'inherit',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              padding: '0 0.25rem',
+            }}
+          >
+            ✕
+          </button>
         </div>
       )}
 
