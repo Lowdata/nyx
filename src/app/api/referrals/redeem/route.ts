@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { verifySessionToken, extractBearerToken } from '@/lib/auth';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
-import { checkPersistentBlock, isSameIpReferral, recordTrafficHit, getRealIp } from '@/lib/security';
+import { checkPersistentBlock, recordTrafficHit, getRealIp } from '@/lib/security';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
@@ -100,20 +100,6 @@ export async function POST(req: NextRequest) {
 
     if (referrer.address === normalizedAddress) {
       return NextResponse.json({ error: 'Cannot refer yourself.' }, { status: 400 });
-    }
-
-    // Same-IP self-referral check with Option 3 grace allowance:
-    const sameIp = await isSameIpReferral(realIp, referrer.address, db);
-    const sameIpRefCount = await usersCollection.countDocuments({
-      referredByCode: cleanCode,
-      registrationIp: realIp,
-    });
-
-    if (sameIp && sameIpRefCount >= 1 && !user.twitterHandle) {
-      return NextResponse.json(
-        { error: 'Multiple referrals detected on this network. Please connect your X account first to qualify this referral.' },
-        { status: 400 }
-      );
     }
 
     // Enforce max referral cap (30 referrals per user)
