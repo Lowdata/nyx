@@ -44,6 +44,7 @@ export default function ReferralSection({
   const [inputCode, setInputCode] = useState('');
   const [redeemFeedback, setRedeemFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [simulationToast, setSimulationToast] = useState<string | null>(null);
+  const [autoRedeemAttempted, setAutoRedeemAttempted] = useState(false);
 
   const [origin, setOrigin] = useState('https://nyx.gg');
 
@@ -52,6 +53,46 @@ export default function ReferralSection({
       setOrigin(window.location.origin);
     }
   }, []);
+
+  // Auto-fill referral code from URL param (?ref=...) stored in localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // Also read ?ref= directly from current URL (in case user is on /dashboard?ref=...)
+    const params = new URLSearchParams(window.location.search);
+    const urlRef = params.get('ref');
+    if (urlRef) {
+      localStorage.setItem('nyx_pending_ref', urlRef.trim().toUpperCase());
+    }
+    const pending = localStorage.getItem('nyx_pending_ref');
+    if (pending && !referredByCode) {
+      setInputCode(pending);
+    } else if (referredByCode) {
+      // Already claimed — clear the stored code
+      localStorage.removeItem('nyx_pending_ref');
+    }
+  }, [referredByCode]);
+
+  // Auto-redeem once wallet is connected and a pending code is pre-filled
+  useEffect(() => {
+    if (autoRedeemAttempted) return;
+    if (!walletAddress) return;
+    if (referredByCode) {
+      localStorage.removeItem('nyx_pending_ref');
+      return;
+    }
+    const pending = localStorage.getItem('nyx_pending_ref');
+    if (!pending || !inputCode) return;
+    // Trigger auto-redeem
+    setAutoRedeemAttempted(true);
+    onRedeemCode(pending).then((res) => {
+      setRedeemFeedback(res);
+      if (res.success) {
+        setInputCode('');
+        localStorage.removeItem('nyx_pending_ref');
+      }
+    });
+  }, [walletAddress, referredByCode, inputCode, autoRedeemAttempted, onRedeemCode]);
+
 
   const activeCode = referralCode || '';
   const shareUrl = `${origin}/?ref=${activeCode || 'SUMMON'}`;

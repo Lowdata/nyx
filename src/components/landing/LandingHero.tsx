@@ -13,6 +13,16 @@ export default function LandingHero() {
   const [ctaVisible, setCtaVisible] = useState(false);
   const hasAnimated = useRef(false);
 
+  // Persist ?ref= code to localStorage so the dashboard can auto-redeem it
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      localStorage.setItem('nyx_pending_ref', ref.trim().toUpperCase());
+    }
+  }, []);
+
   useEffect(() => {
     if (hasAnimated.current) return;
     hasAnimated.current = true;
