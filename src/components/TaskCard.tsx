@@ -45,7 +45,7 @@ const DEFAULT_TASK_ITEMS: TaskItem[] = [
     title: 'Like Tweet',
     pts: 20,
     type: 'twitter_intent',
-    intentUrl: 'https://twitter.com/intent/like?tweet_id=2100216839095701608',
+    intentUrl: 'https://twitter.com/intent/like?tweet_id=2102045565823401990',
   },
   {
     id: 'repost',
@@ -53,7 +53,7 @@ const DEFAULT_TASK_ITEMS: TaskItem[] = [
     title: 'Retweet the Tweet',
     pts: 30,
     type: 'twitter_intent',
-    intentUrl: 'https://twitter.com/intent/retweet?tweet_id=2100216839095701608',
+    intentUrl: 'https://twitter.com/intent/retweet?tweet_id=2102045565823401990',
   },
   {
     id: 'comment',
@@ -61,7 +61,7 @@ const DEFAULT_TASK_ITEMS: TaskItem[] = [
     title: 'Tweet about Nyx',
     pts: 30,
     type: 'twitter_intent',
-    intentUrl: 'https://twitter.com/intent/tweet?text=Awakening%20with%20%40enternyx%20%F0%9F%8C%99%20Enter%20the%20dream%20circle%20and%20claim%20your%20wake%20points%3A%20https%3A%2F%2Fnyx.town&in_reply_to=2100216839095701608',
+    intentUrl: 'https://twitter.com/intent/tweet?text=Awakening%20with%20%40enternyx%20%F0%9F%8C%99%20Enter%20the%20dream%20circle%20and%20claim%20your%20wake%20points%3A%20https%3A%2F%2Fnyx.town&in_reply_to=2102045565823401990',
   },
   {
     id: 'referral',
