@@ -20,6 +20,7 @@ export const DEFAULT_STATE: DreamState = {
     like: false,
     repost: false,
     comment: false,
+    post_traits: false,
     referral: false,
   },
   twitterHandle: null,

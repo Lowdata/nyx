@@ -257,6 +257,7 @@ export async function POST(req: NextRequest) {
         like: false,
         repost: false,
         comment: false,
+        post_traits: false,
         referral: false,
       },
       twitterHandle: null,

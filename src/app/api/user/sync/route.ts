@@ -11,6 +11,7 @@ const VALID_TASKS: Record<string, number> = {
   like: 20,
   repost: 30,
   comment: 30,
+  post_traits: 30,
   referral: 40,
 };
 

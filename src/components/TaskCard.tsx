@@ -64,6 +64,14 @@ const DEFAULT_TASK_ITEMS: TaskItem[] = [
     intentUrl: 'https://twitter.com/intent/tweet?text=Awakening%20with%20%40enternyx%20%F0%9F%8C%99%20Enter%20the%20dream%20circle%20and%20claim%20your%20wake%20points%3A%20https%3A%2F%2Fnyx.town&in_reply_to=2102045565823401990',
   },
   {
+    id: 'post_traits',
+    icon: '✦',
+    title: 'Like & Repost new post',
+    pts: 30,
+    type: 'twitter_intent',
+    intentUrl: 'https://x.com/enternyx/status/2102413857499095209',
+  },
+  {
     id: 'referral',
     icon: '🎁',
     title: 'Summon friends on X',
