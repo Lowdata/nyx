@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { FCFS_END } from '@/hooks/useDreamState';
 
 interface TweetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmitTweet: (url: string) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
   isClaimed: boolean;
+  points?: number;
 }
 
 export default function TweetModal({
@@ -14,11 +16,13 @@ export default function TweetModal({
   onClose,
   onSubmitTweet,
   isClaimed,
+  points,
 }: TweetModalProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const tweetPts = (points ?? 0) >= FCFS_END ? 10 : 50;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,7 +80,12 @@ export default function TweetModal({
 
         <h3 id="tweet-modal-title">Tweet about Nyx</h3>
         <p className="desc">
-          Post about Nyx on X, then paste your post link below. Valid status links earn +50 wake points.
+          Post about Nyx on X, then paste your post link below. Valid status links earn +{tweetPts} wake points.
+          {tweetPts < 50 && (
+            <span style={{ display: 'block', marginTop: '4px', fontSize: '0.78em', color: '#fbbf24', opacity: 0.9 }}>
+              🌕 GTD Grind Mode — reduced from +50 pts
+            </span>
+          )}
         </p>
 
         {!alreadyClaimed && (
@@ -124,11 +133,11 @@ export default function TweetModal({
               ? 'Verifying prophecy...'
               : alreadyClaimed
               ? 'Tweet submitted'
-              : 'Submit tweet (+50 wake points)'}
+              : `Submit tweet (+${tweetPts} wake points)`}
           </button>
 
           {alreadyClaimed && (
-            <p className="field-success">Prophecy recorded: +50 wake points added.</p>
+            <p className="field-success">Prophecy recorded: +{tweetPts} wake points added.</p>
           )}
         </form>
       </div>

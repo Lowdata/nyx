@@ -6,6 +6,7 @@ import { checkPersistentBlock, recordTrafficHit, getRealIp } from '@/lib/securit
 import { logger } from '@/lib/logger';
 
 const MAX_TARGET_POINTS = 2200;
+const FCFS_THRESHOLD = 1500; // Users at/above this earn reduced points (GTD grind mode)
 
 export async function POST(req: NextRequest) {
   try {
@@ -90,6 +91,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid or unknown taskId' }, { status: 400 });
       }
       pointsToAward = fallbackDef.pts;
+    }
+
+    // Apply GTD-grind diminishing returns: users at/above FCFS_THRESHOLD earn ~33% of normal pts
+    const userForPoints = await usersCol.findOne({ address: normalizedAddress }, { projection: { points: 1 } });
+    if ((userForPoints?.points ?? 0) >= FCFS_THRESHOLD) {
+      pointsToAward = Math.max(1, Math.floor(pointsToAward * 0.33));
+      logger.info('Tasks:complete', `GTD-grind mode: reduced task pts to ${pointsToAward}`, { address: normalizedAddress, taskId });
     }
 
     // 5. Verify Idempotency in userTasks collection

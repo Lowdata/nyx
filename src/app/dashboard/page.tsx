@@ -241,6 +241,7 @@ export default function Home() {
         onClose={() => setTweetOpen(false)}
         onSubmitTweet={handleTweetSubmit}
         isClaimed={state.tweetClaimed}
+        points={state.points}
       />
 
       <OnboardingModal

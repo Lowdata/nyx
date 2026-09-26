@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { TaskItem } from '@/types';
+import { FCFS_END } from '@/hooks/useDreamState';
 
 interface TaskCardProps {
   tasksDone?: Record<string, boolean>;
@@ -210,7 +211,10 @@ export default function TaskCard({
           const errMsg = (res as { error?: string }).error || `Could not verify ${task.title}.`;
           showToast(errMsg, true);
         } else {
-          showToast(`✦ ${task.title} verified! +${task.pts} wake points added!`, false);
+          const displayPts = (points ?? 0) >= FCFS_END
+            ? Math.max(1, Math.floor(task.pts * 0.33))
+            : task.pts;
+          showToast(`✦ ${task.title} verified! +${displayPts} wake points added!`, false);
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : `Failed to verify ${task.title}.`;
@@ -289,6 +293,25 @@ export default function TaskCard({
         </div>
       </div>
 
+      {/* GTD GRIND BANNER — shown only when user is in the 1500–2200 grind zone */}
+      {(points ?? 0) >= FCFS_END && (
+        <div
+          className="gtd-grind-banner"
+          style={{
+            margin: '0.5rem 1rem 0.25rem',
+            padding: '0.55rem 0.85rem',
+            borderRadius: '8px',
+            background: 'rgba(253, 196, 60, 0.08)',
+            border: '1px solid rgba(253, 196, 60, 0.3)',
+            fontSize: '0.78rem',
+            lineHeight: 1.45,
+            color: '#fde68a',
+          }}
+        >
+          <strong>🌕 GTD Grind Mode</strong> — You've cleared FCFS. To earn a <strong>Guaranteed</strong> spot you must fill the full meter to 2,200 pts. Points per action are reduced in this zone.
+        </div>
+      )}
+
       {/* RITUALS EXPLAINER POPOVER */}
       {showInfo && (
         <div className="task-info-popover animate-fade-in" role="dialog" aria-label="Rituals and quests guide">
@@ -306,19 +329,27 @@ export default function TaskCard({
           <div className="task-info-card">
             <span className="task-info-badge spin">⚡ Spin the Wheel</span>
             <p>
-              Daily Moon Spin resets every <strong>24 hours</strong>. Land anywhere on the wheel to earn <strong>10 to 50 wake points</strong> added directly to your dream meter.
+              Daily Moon Spin resets every <strong>24 hours</strong>.
+              {(points ?? 0) >= FCFS_END
+                ? <> In GTD grind mode, spin wins are <strong>capped at 15 pts</strong>.</>  
+                : <> Land anywhere on the wheel to earn <strong>10 to 50 wake points</strong>.</>}
             </p>
           </div>
           <div className="task-info-card">
             <span className="task-info-badge tweet">✕ Submit Tweet</span>
             <p>
-              Share an awakening post about Nyx on X, click &ldquo;Submit tweet&rdquo;, and paste your tweet link to claim <strong>+50 wake points</strong>.
+              Share an awakening post about Nyx on X and paste your tweet link to claim{' '}
+              {(points ?? 0) >= FCFS_END
+                ? <><strong>+10 wake points</strong> (reduced in GTD grind mode).</>  
+                : <><strong>+50 wake points</strong>.</>}
             </p>
           </div>
           <div className="task-info-card">
             <span className="task-info-badge quest">✦ Awakening Quests</span>
             <p>
-              Complete the quests below to push the meter into <strong>FCFS (600 pts)</strong> and <strong>Guaranteed (1,500 pts)</strong> mint tiers before Nyx awakes!
+              {(points ?? 0) >= FCFS_END
+                ? <>You're in <strong>GTD Grind</strong>. Fill the meter all the way to <strong>2,200 pts</strong> to secure a Guaranteed mint spot. Task points are ~33% of normal.</>  
+                : <>Complete the quests below to push the meter into <strong>FCFS (600 pts)</strong> and <strong>Guaranteed (1,500 pts)</strong> mint tiers.</>}
             </p>
           </div>
         </div>
@@ -388,7 +419,11 @@ export default function TaskCard({
               <div className="task-info">
                 <div className="task-title">{t.title}</div>
                 <div className="task-pts">
-                  {t.id === 'referral' ? '+10 pts / friend' : `+${t.pts} pts`}
+                  {t.id === 'referral'
+                    ? '+10 pts / friend'
+                    : (points ?? 0) >= FCFS_END
+                      ? `+${Math.max(1, Math.floor(t.pts * 0.33))} pts`
+                      : `+${t.pts} pts`}
                 </div>
 
                 {t.id === 'referral' && !isVerifying && (

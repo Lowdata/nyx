@@ -61,7 +61,7 @@ export default function Hero({
   if (points >= FCFS_END) {
     eyebrow = 'DAWN BREAKING';
     title = 'Nyx is waking.';
-    sub = 'FCFS spots are open. Guaranteed spots need the whole circle, not just you.';
+    sub = 'FCFS spots are open. Fill the full meter to 2,200 pts to earn a Guaranteed spot — points are reduced in this zone to make it count.';
   } else if (points >= SLEEP_END) {
     eyebrow = 'STIRRING';
     title = 'Nyx is stirring.';

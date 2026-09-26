@@ -18,6 +18,9 @@ const VALID_TASKS: Record<string, number> = {
 const ALLOWED_SPIN_VALUES = new Set([10, 15, 20, 25, 30, 40, 50]);
 const SPIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MAX_TARGET_POINTS = 2200;
+const FCFS_THRESHOLD = 1500; // Users at/above this earn reduced points (GTD grind mode)
+const FCFS_MAX_SPIN_PTS = 15;  // Spin cap for GTD-grind users
+const FCFS_TWEET_PTS = 10;     // Tweet reward for GTD-grind users (normally 50)
 
 
 export async function POST(req: NextRequest) {
@@ -86,6 +89,13 @@ export async function POST(req: NextRequest) {
       }
 
       const taskPts = VALID_TASKS[taskId];
+      // GTD-grind: users at/above FCFS threshold earn only ~33% of normal pts
+      const effectiveTaskPts = user.points >= FCFS_THRESHOLD
+        ? Math.max(1, Math.floor(taskPts * 0.33))
+        : taskPts;
+      if (user.points >= FCFS_THRESHOLD) {
+        logger.info('DB:sync', `GTD-grind mode task: "${taskId}" reduced to ${effectiveTaskPts} pts (was ${taskPts})`, { address: normalizedAddress });
+      }
       const taskResult = await usersCollection.updateOne(
         {
           address: normalizedAddress,
@@ -93,17 +103,17 @@ export async function POST(req: NextRequest) {
         },
         {
           $set: { [`tasksDone.${taskId}`]: true },
-          $inc: { points: taskPts },
+          $inc: { points: effectiveTaskPts },
         }
       );
 
       if (taskResult.modifiedCount > 0) {
-        logger.info('DB:sync', `Saved task to DB: "${taskId}" (+${taskPts} pts)`, { address: normalizedAddress, taskId });
+        logger.info('DB:sync', `Saved task to DB: "${taskId}" (+${effectiveTaskPts} pts)`, { address: normalizedAddress, taskId });
         try {
           await db.collection('userTasks').insertOne({
             address: normalizedAddress,
             taskId,
-            pts: taskPts,
+            pts: effectiveTaskPts,
             completedAt: Date.now(),
           });
         } catch {
@@ -122,6 +132,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid spin prize value' }, { status: 400 });
       }
 
+      // GTD-grind: cap spin winnings at FCFS_MAX_SPIN_PTS for users above threshold
+      const effectiveSpinPoints = user.points >= FCFS_THRESHOLD
+        ? Math.min(spinPoints, FCFS_MAX_SPIN_PTS)
+        : spinPoints;
+      if (user.points >= FCFS_THRESHOLD) {
+        logger.info('DB:sync', `GTD-grind mode spin: capped to ${effectiveSpinPoints} pts (requested ${spinPoints})`, { address: normalizedAddress });
+      }
+
       const cooldownThreshold = Date.now() - SPIN_COOLDOWN_MS;
       const now = Date.now();
 
@@ -137,7 +155,7 @@ export async function POST(req: NextRequest) {
         },
         {
           $set: { lastSpinAt: now },
-          $inc: { points: spinPoints },
+          $inc: { points: effectiveSpinPoints },
         }
       );
 
@@ -153,9 +171,9 @@ export async function POST(req: NextRequest) {
         { $set: { points: MAX_TARGET_POINTS } }
       );
 
-      logger.info('DB:sync', `Awarded spin points atomically: +${spinPoints} pts`, {
+      logger.info('DB:sync', `Awarded spin points atomically: +${effectiveSpinPoints} pts`, {
         address: normalizedAddress,
-        spinPoints,
+        spinPoints: effectiveSpinPoints,
       });
     }
 
@@ -197,6 +215,12 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // GTD-grind: users above FCFS threshold get reduced tweet reward
+      const tweetPts = user.points >= FCFS_THRESHOLD ? FCFS_TWEET_PTS : 50;
+      if (user.points >= FCFS_THRESHOLD) {
+        logger.info('DB:sync', `GTD-grind mode tweet: awarding ${tweetPts} pts instead of 50`, { address: normalizedAddress });
+      }
+
       const tweetClaimResult = await usersCollection.updateOne(
         {
           address: normalizedAddress,
@@ -204,7 +228,7 @@ export async function POST(req: NextRequest) {
         },
         {
           $set: { tweetClaimed: true },
-          $inc: { points: 50 },
+          $inc: { points: tweetPts },
           $addToSet: {
             submittedTweetUrls: cleanUrl,
             ...(statusId ? { submittedTweetIds: statusId } : {}),
@@ -221,7 +245,7 @@ export async function POST(req: NextRequest) {
         { $set: { points: MAX_TARGET_POINTS } }
       );
 
-      logger.info('DB:sync', `Awarded tweet reward atomically: +50 pts`, {
+      logger.info('DB:sync', `Awarded tweet reward atomically: +${tweetPts} pts`, {
         address: normalizedAddress,
         tweetUrl: cleanUrl,
       });
@@ -349,7 +373,6 @@ export async function POST(req: NextRequest) {
     }
 
     const updatedUser = await usersCollection.findOne({ address: normalizedAddress });
-    return NextResponse.json({ success: true, user: updatedUser });
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
     logger.error('User:sync', 'User sync error', error);
